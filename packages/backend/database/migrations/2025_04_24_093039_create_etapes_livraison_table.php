@@ -11,16 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('annonces', function (Blueprint $table) {
+        Schema::create('etapes_livraison', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_commercant');
-            $table->text('description');
+            $table->unsignedBigInteger('id_livraison');
+            $table->integer('ordre');
             $table->string('lieu_depart');
             $table->string('lieu_arrivee');
-            $table->decimal('prix_propose', 8, 2);
+            $table->string('statut')->default('en attente');
+            $table->dateTime('date_prise_en_charge')->nullable();
             $table->timestamps();
 
-            $table->foreign('id_commercant')->references('id')->on('commercants')->onDelete('cascade');
+            $table->foreign('id_livraison')
+                  ->references('id')
+                  ->on('livraisons')
+                  ->onDelete('cascade');
         });
     }
 
@@ -29,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('annonces');
+        Schema::dropIfExists('etapes_livraison');
     }
 };

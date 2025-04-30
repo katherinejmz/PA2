@@ -1,21 +1,29 @@
 <?php
 
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 class Prestataire extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['id', 'type_de_service', 'tarif_horaire'];
+    protected $table = 'prestataires';
 
+    protected $fillable = [
+        'id_utilisateur',
+        'type_service',
+        'tarif_horaire',
+    ];
+
+    // Relation avec l'utilisateur principal
     public function utilisateur()
     {
-        return $this->belongsTo(Utilisateur::class, 'id');
+        return $this->belongsTo(Utilisateur::class, 'id_utilisateur');
     }
 
-    public function livraisons()
-    {
-        return $this->hasMany(Livraison::class, 'id_prestataire');
-    }
-
+    // Évaluations données au prestataire
     public function evaluations()
     {
         return $this->hasMany(Evaluation::class, 'id_prestataire');

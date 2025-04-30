@@ -13,7 +13,13 @@ return new class extends Migration
     {
         Schema::create('livreurs', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('id_utilisateur');
+            $table->string('vehicule');
+            $table->decimal('note_moyenne', 3, 2)->nullable();
+            $table->integer('nombre_livraisons')->default(0);
             $table->timestamps();
+
+            $table->foreign('id_utilisateur')->references('id')->on('utilisateurs')->onDelete('cascade');
         });
     }
 

@@ -1,5 +1,6 @@
 <?php
-
+use Illuminate\Support\Facades\Facades;
+use Illuminate\Support\ServiceProvider;
 return [
 
     /*
@@ -122,5 +123,16 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    'providers' => ServiceProvider::defaultProviders()->merge([
+    
+    
+        //App\Providers\AppServiceProvider::class,
+        //App\Providers\AuthServiceProvider::class,// App\Providers\BroadcastServiceProvider::class,
+        //App\Providers\EventServiceProvider::class,
+        App\Providers\RouteServiceProvider::class,
+        // App\Providers\Wasabi\WasabiServiceProvider::class,
+
+        ])->toArray(),
 
 ];

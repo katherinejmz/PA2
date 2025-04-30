@@ -2,47 +2,83 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Evaluation;
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Validation\ValidationException;
 
 class EvaluationController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    // Lister toutes les évaluations
     public function index()
     {
-        //
+        return Evaluation::with(['client', 'livreur', 'prestataire'])->get();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    // Créer une évaluation
     public function store(Request $request)
     {
-        //
+        try {
+            $request->validate([
+                'id_client' => 'required|exists:clients,id',
+                'id_livreur' => 'nullable|exists:livreurs,id',
+                'id_prestataire' => 'nullable|exists:prestataires,id',
+                'note' => 'required|integer|min:1|max:5',
+                'commentaire' => 'nullable|string|max:1000',
+            ]);
+
+            $evaluation = Evaluation::create($request->all());
+
+            return response()->json($evaluation, 201);
+
+        } catch (ValidationException $e) {
+            // Erreurs de validation
+            return response()->json(['errors' => $e->errors()], 422);
+        }
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    // Afficher une évaluation spécifique
+    public function show($id)
     {
-        //
+        try {
+            $evaluation = Evaluation::with(['client', 'livreur', 'prestataire'])->findOrFail($id);
+            return response()->json($evaluation);
+        } catch (ModelNotFoundException) {
+            return response()->json(['error' => 'Évaluation non trouvée.'], 404);
+        }
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    // Mettre à jour une évaluation
+    public function update(Request $request, $id)
     {
-        //
+        try {
+            $evaluation = Evaluation::findOrFail($id);
+
+            $request->validate([
+                'note' => 'sometimes|integer|min:1|max:5',
+                'commentaire' => 'nullable|string|max:1000',
+            ]);
+
+            $evaluation->update($request->only(['note', 'commentaire']));
+
+            return response()->json($evaluation);
+
+        } catch (ModelNotFoundException) {
+            return response()->json(['error' => 'Évaluation non trouvée.'], 404);
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 422);
+        }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    // Supprimer une évaluation
+    public function destroy($id)
     {
-        //
+        try {
+            $evaluation = Evaluation::findOrFail($id);
+            $evaluation->delete();
+            return response()->json(['message' => 'Évaluation supprimée avec succès.']);
+        } catch (ModelNotFoundException) {
+            return response()->json(['error' => 'Évaluation non trouvée.'], 404);
+        }
     }
 }

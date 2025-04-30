@@ -13,23 +13,29 @@ return new class extends Migration
     {
         Schema::create('evaluations', function (Blueprint $table) {
             $table->id();
-    
             $table->unsignedBigInteger('id_client')->nullable();
             $table->unsignedBigInteger('id_livreur')->nullable();
             $table->unsignedBigInteger('id_prestataire')->nullable();
-    
             $table->integer('note');
             $table->text('commentaire')->nullable();
-    
             $table->timestamps();
-    
-            // Clés étrangères (si tu veux activer les contraintes)
-            $table->foreign('id_client')->references('id')->on('clients')->onDelete('set null');
-            $table->foreign('id_livreur')->references('id')->on('livreurs')->onDelete('set null');
-            $table->foreign('id_prestataire')->references('id')->on('prestataires')->onDelete('set null');
+
+            $table->foreign('id_client')
+                  ->references('id')
+                  ->on('clients')
+                  ->onDelete('set null');
+
+            $table->foreign('id_livreur')
+                  ->references('id')
+                  ->on('livreurs')
+                  ->onDelete('set null');
+
+            $table->foreign('id_prestataire')
+                  ->references('id')
+                  ->on('prestataires')
+                  ->onDelete('set null');
         });
     }
-    
 
     /**
      * Reverse the migrations.

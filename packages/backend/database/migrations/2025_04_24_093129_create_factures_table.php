@@ -13,7 +13,15 @@ return new class extends Migration
     {
         Schema::create('factures', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('id_paiement');
+            $table->string('pdf_facture');
+            $table->date('date_emission');
             $table->timestamps();
+
+            $table->foreign('id_paiement')
+                  ->references('id')
+                  ->on('paiements')
+                  ->onDelete('cascade');
         });
     }
 

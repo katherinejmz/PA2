@@ -13,7 +13,15 @@ return new class extends Migration
     {
         Schema::create('prestataires', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('id_utilisateur');
+            $table->string('type_service');
+            $table->decimal('tarif_horaire', 8, 2);
             $table->timestamps();
+
+            $table->foreign('id_utilisateur')
+                  ->references('id')
+                  ->on('utilisateurs')
+                  ->onDelete('cascade');
         });
     }
 

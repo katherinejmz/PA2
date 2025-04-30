@@ -3,44 +3,47 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Utilisateur extends Model
+class Utilisateur extends Authenticatable
 {
-    use HasFactory;
+    use HasApiTokens, HasFactory, Notifiable;
+
+    protected $table = 'utilisateurs';
 
     protected $fillable = [
         'nom',
         'prenom',
         'email',
-        'mot_de_passe',
-        'role'
+        'password',
+        'role',
     ];
 
-    // Relations spécifiques selon le rôle
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    // Relations avec les rôles
     public function client()
     {
-        return $this->hasOne(Client::class, 'id');
+        return $this->hasOne(Client::class, 'id', 'id_utilisateur');
     }
 
     public function commercant()
     {
-        return $this->hasOne(Commercant::class, 'id');
+        return $this->hasOne(Commercant::class, 'id', 'id_utilisateur');
     }
 
     public function prestataire()
     {
-        return $this->hasOne(Prestataire::class, 'id');
+        return $this->hasOne(Prestataire::class, 'id', 'id_utilisateur');
     }
 
     public function livreur()
     {
-        return $this->hasOne(Livreur::class, 'id');
-    }
-
-    // Evaluation reçues si c’est un prestataire ou livreur
-    public function evaluationsRecues()
-    {
-        return $this->hasMany(Evaluation::class, 'id_prestataire')->orWhere('id_livreur', $this->id);
+        return $this->hasOne(Livreur::class, 'id', 'id_utilisateur');
     }
 }

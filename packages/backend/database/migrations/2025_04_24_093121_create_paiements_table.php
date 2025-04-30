@@ -13,7 +13,16 @@ return new class extends Migration
     {
         Schema::create('paiements', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('id_livraison');
+            $table->decimal('montant', 8, 2);
+            $table->date('date');
+            $table->string('statut')->default('en attente');
             $table->timestamps();
+
+            $table->foreign('id_livraison')
+                  ->references('id')
+                  ->on('livraisons')
+                  ->onDelete('cascade');
         });
     }
 

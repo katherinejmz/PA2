@@ -11,17 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('commercants', function (Blueprint $table) {
+        Schema::create('communications', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_utilisateur');
-            $table->string('entreprise');
-            $table->string('adresse');
-            $table->string('siret');
+            $table->unsignedBigInteger('id_etape');
+            $table->unsignedBigInteger('id_livreur');
+            $table->text('message');
             $table->timestamps();
 
-            $table->foreign('id_utilisateur')
+            $table->foreign('id_etape')
                   ->references('id')
-                  ->on('utilisateurs')
+                  ->on('etapes_livraison')
+                  ->onDelete('cascade');
+
+            $table->foreign('id_livreur')
+                  ->references('id')
+                  ->on('livreurs')
                   ->onDelete('cascade');
         });
     }
@@ -31,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('commercants');
+        Schema::dropIfExists('communications');
     }
 };

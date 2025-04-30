@@ -13,7 +13,15 @@ return new class extends Migration
     {
         Schema::create('livraisons', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('id_annonce');
+            $table->dateTime('date_prise_en_charge')->nullable();
+            $table->string('statut')->default('en attente');
             $table->timestamps();
+
+            $table->foreign('id_annonce')
+                  ->references('id')
+                  ->on('annonces')
+                  ->onDelete('cascade');
         });
     }
 
