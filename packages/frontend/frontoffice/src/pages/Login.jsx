@@ -14,9 +14,11 @@ export default function Login() {
       await login(email, password);
       navigate("/");
     } catch (error) {
-      alert("Connexion échouée");
-      console.error(error);
+        const message = error.response?.data?.message || error.message || "Erreur inconnue";
+        alert("Connexion échouée : " + message);
+        console.error(error);
     }
+    
   };
 
   return (

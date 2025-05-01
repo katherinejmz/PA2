@@ -1,0 +1,49 @@
+-verif a ajouter au controleurs/ et tester avec insomnia V
+
+-regles et gestions d'erreur all controlleur V
+
+-cree un controleurs auth sessions
+
+
+
+-----------------------------------------------------------------------------------------------
+Détail de chaque règle possible :
+
+
+ regex:/^[\pL\s-]+$/u (pour nom/prénom)
+
+Accepte lettres accentuées, espaces, tirets
+
+ Refuse les chiffres, caractères spéciaux
+
+
+ email:rfc,dns
+Vérifie que l'email respecte les normes officielles (RFC) et que le domaine existe (DNS)
+
+'email' => 'required|email:rfc,dns|max:255|unique:utilisateurs,email',
+
+
+ mot_de_passe plus sécurisé :
+
+'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,32}$/'
+Minimum :
+
+1 majuscule
+
+1 minuscule
+
+1 chiffre
+
+1 caractère spécial
+
+Longueur 8–32
+
+
+ role contrôlé avec in
+Permet de restreindre les rôles autorisés :
+
+'role' => 'required|string|in:client,commercant,livreur,prestataire'
+-------------------------------------------------------------------------------------------------------------
+
+
+proteger les routes avec l'authentification et aussi se renseigner separer l'authent cote admin et le reste 
