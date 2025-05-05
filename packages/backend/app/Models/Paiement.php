@@ -2,31 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Paiement extends Model
 {
-    use HasFactory;
-
-    protected $table = 'paiements';
-
     protected $fillable = [
-        'id_livraison',
+        'utilisateur_id',
+        'commande_id',
         'montant',
-        'date',
-        'statut',
+        'sens',
+        'type',
+        'reference',
     ];
 
-    // Relation vers la livraison associée
-    public function livraison()
+    public function utilisateur()
     {
-        return $this->belongsTo(Livraison::class, 'id_livraison');
+        return $this->belongsTo(Utilisateur::class, 'utilisateur_id');
     }
 
-    // Relation vers la facture générée
-    public function facture()
+    public function commande()
     {
-        return $this->hasOne(Facture::class, 'id_paiement');
+        return $this->belongsTo(Commande::class, 'commande_id');
     }
 }

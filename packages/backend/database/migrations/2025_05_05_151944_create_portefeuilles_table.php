@@ -11,18 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('factures', function (Blueprint $table) {
+        Schema::create('portefeuilles', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_paiement');
-            $table->string('pdf_facture');
-            $table->date('date_emission');
+            $table->unsignedBigInteger('utilisateur_id')->unique();
+            $table->decimal('solde', 10, 2)->default(0);
             $table->timestamps();
-
-            $table->foreign('id_paiement')
-                  ->references('id')
-                  ->on('paiements')
-                  ->onDelete('cascade');
+        
+            $table->foreign('utilisateur_id')->references('id')->on('utilisateurs')->onDelete('cascade');
         });
+        
     }
 
     /**
@@ -30,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('factures');
+        Schema::dropIfExists('portefeuilles');
     }
 };

@@ -19,6 +19,9 @@ class Utilisateur extends Authenticatable
         'email',
         'password',
         'role',
+        'pays',
+        'telephone',
+        'adresse_postale',
     ];
 
     protected $hidden = [
@@ -26,24 +29,82 @@ class Utilisateur extends Authenticatable
         'remember_token',
     ];
 
-    // Relations avec les rôles
-    public function client()
+    // Mutator pour hasher automatiquement le mot de passe
+    public function setPasswordAttribute($value)
     {
-        return $this->hasOne(Client::class, 'id', 'id_utilisateur');
+        $this->attributes['password'] = bcrypt($value);
     }
 
-    public function commercant()
+    // Annonces créées par le client (type livraison_client, service ou produit_livre)
+    public function annoncesClient()
     {
-        return $this->hasOne(Commercant::class, 'id', 'id_utilisateur');
+        return $this->hasMany(Annonce::class, 'id_client');
     }
 
-    public function prestataire()
+    // Annonces créées par le commerçant (type produit_livre)
+    public function annoncesCommercant()
     {
-        return $this->hasOne(Prestataire::class, 'id', 'id_utilisateur');
+        return $this->hasMany(Annonce::class, 'id_commercant');
     }
 
-    public function livreur()
+    // Annonces créées par le prestataire (type service)
+    public function annoncesPrestataire()
     {
-        return $this->hasOne(Livreur::class, 'id', 'id_utilisateur');
+        return $this->hasMany(Annonce::class, 'id_prestataire');
     }
+
+    // Annonces pour lesquelles l'utilisateur est livreur (via table pivot)
+    public function livraisons()
+    {
+        return $this->belongsToMany(Annonce::class, 'annonce_utilisateur', 'utilisateur_id', 'annonce_id')
+                    ->where('type', '!=', 'service');
+    }
+
+    // Commandes faites par ce client
+    public function commandes()
+    {
+        return $this->hasMany(Commande::class, 'client_id');
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isBackOffice()
+    {
+        return $this->role === 'backoffice';
+    }
+
+    public function portefeuille()
+    {
+        return $this->hasOne(Portefeuille::class, 'utilisateur_id');
+    }
+
+    public function paiements()
+    {
+        return $this->hasMany(Paiement::class, 'utilisateur_id');
+    }
+
+    public function colisLivres()
+    {
+        return $this->hasMany(Colis::class, 'livreur_id');
+    }
+
+    public function messagesEnvoyes()
+    {
+        return $this->hasMany(Communication::class, 'expediteur_id');
+    }
+
+    public function messagesRecus()
+    {
+        return $this->hasMany(Communication::class, 'destinataire_id');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'utilisateur_id');
+    }
+
+
 }

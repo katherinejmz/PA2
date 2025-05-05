@@ -9,33 +9,54 @@ class Annonce extends Model
 {
     use HasFactory;
 
-    protected $table = 'annonces';
 
     protected $fillable = [
+        'type',
+        'titre',
+        'description',
+        'prix_propose',
+        'photo',
         'id_client',
         'id_commercant',
-        'description',
+        'id_prestataire',
         'lieu_depart',
         'lieu_arrivee',
-        'prix_propose',
     ];
 
-    // Relation vers le client ayant publié l'annonce
+    // Client associé à l'annonce
     public function client()
     {
-        return $this->belongsTo(Client::class, 'id_client');
+        return $this->belongsTo(Utilisateur::class, 'id_client');
     }
 
-    // Relation vers le commerçant ayant publié l'annonce
+    // Commerçant (seulement si type = produit_livre)
     public function commercant()
     {
-        return $this->belongsTo(Commercant::class, 'id_commercant');
+        return $this->belongsTo(Utilisateur::class, 'id_commercant');
     }
 
-    // Relation avec la livraison associée à cette annonce
-    public function livraison()
+    // Prestataire (seulement si type = service)
+    public function prestataire()
     {
-        return $this->hasOne(Livraison::class, 'id_annonce');
+        return $this->belongsTo(Utilisateur::class, 'id_prestataire');
     }
-}
 
+    // Livreurs associés via la table pivot (si type = livraison_client ou produit_livre)
+    public function livreurs()
+    {
+        return $this->belongsToMany(Utilisateur::class, 'annonce_utilisateur', 'annonce_id', 'utilisateur_id')
+                    ->where('role', 'livreur');
+    }
+
+    // Commandes (achat/réservation d'une annonce)
+    public function commandes()
+    {
+        return $this->hasMany(Commande::class, 'annonce_id');
+    }
+
+    public function colis()
+    {
+        return $this->hasOne(Colis::class);
+    }
+    
+}

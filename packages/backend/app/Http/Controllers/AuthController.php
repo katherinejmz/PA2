@@ -16,7 +16,6 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required'
         ]);
-        
 
         $user = Utilisateur::where('email', strtolower($request->email))->first();
 
@@ -26,12 +25,10 @@ class AuthController extends Controller
             ]);
         }
 
-        // Injecter l'id_commercant si le rôle correspond
+        // Récupérer un ID lié en fonction du rôle
+        $idCommercant = null;
         if ($user->role === 'commercant') {
-            $commercant = Commercant::where('id_utilisateur', $user->id)->first();
-            if ($commercant) {
-                $user->id_commercant = $commercant->id;
-            }
+            $idCommercant = Commercant::where('id_utilisateur', $user->id)->value('id');
         }
 
         return response()->json([
@@ -42,14 +39,10 @@ class AuthController extends Controller
                 'prenom' => $user->prenom,
                 'email' => $user->email,
                 'role' => $user->role,
-                'id_commercant' => $user->role === 'commercant'
-                    ? Commercant::where('id_utilisateur', $user->id)->value('id')
-                    : null
+                'id_commercant' => $idCommercant,
             ],
         ]);
-        
     }
-
 
     public function logout(Request $request)
     {
@@ -57,4 +50,44 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Déconnexion réussie.']);
     }
+
+
+    public function register(Request $request)
+    {
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'email' => 'required|email|unique:utilisateurs,email',
+            'password' => 'required|string|min:6|confirmed',
+            'role' => 'required|in:client,commercant,prestataire,livreur,admin',
+            'pays' => 'nullable|string',
+            'telephone' => 'nullable|string',
+            'adresse_postale' => 'nullable|string',
+        ]);
+
+        $utilisateur = Utilisateur::create([
+            'nom' => $validated['nom'],
+            'prenom' => $validated['prenom'],
+            'email' => strtolower($validated['email']),
+            'password' => $validated['password'], // hashé automatiquement via mutator
+            'role' => $validated['role'],
+            'pays' => $validated['pays'] ?? null,
+            'telephone' => $validated['telephone'] ?? null,
+            'adresse_postale' => $validated['adresse_postale'] ?? null,
+        ]);
+
+        return response()->json([
+            'token' => $utilisateur->createToken('auth_token')->plainTextToken,
+            'user' => [
+                'id' => $utilisateur->id,
+                'nom' => $utilisateur->nom,
+                'prenom' => $utilisateur->prenom,
+                'email' => $utilisateur->email,
+                'role' => $utilisateur->role,
+            ]
+        ], 201);
+    }
+
+
+
 }

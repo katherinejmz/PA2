@@ -16,12 +16,18 @@ return new class extends Migration
             $table->string('nom');
             $table->string('prenom');
             $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role');
+            $table->enum('role', ['client', 'commercant', 'prestataire', 'livreur', 'backoffice', 'admin']);
+            $table->string('pays')->nullable();
+            $table->string('telephone')->nullable();
+            $table->string('adresse_postale')->nullable();
+            $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
-
+    
 
     /**
      * Reverse the migrations.

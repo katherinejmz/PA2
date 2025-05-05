@@ -47,3 +47,10 @@ Permet de restreindre les rôles autorisés :
 
 
 proteger les routes avec l'authentification et aussi se renseigner separer l'authent cote admin et le reste 
+
+
+
+
+
+Claire123! 
+

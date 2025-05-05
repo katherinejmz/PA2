@@ -2,30 +2,30 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Communication extends Model
 {
-    use HasFactory;
-
-    protected $table = 'communications';
-
     protected $fillable = [
-        'id_etape',
-        'id_livreur',
+        'expediteur_id',
+        'destinataire_id',
+        'annonce_id',
         'message',
+        'lu_at',
     ];
 
-    // L'étape concernée par ce message
-    public function etape()
+    public function expediteur()
     {
-        return $this->belongsTo(EtapeLivraison::class, 'id_etape');
+        return $this->belongsTo(Utilisateur::class, 'expediteur_id');
     }
 
-    // Le livreur qui a envoyé ce message
-    public function livreur()
+    public function destinataire()
     {
-        return $this->belongsTo(Livreur::class, 'id_livreur');
+        return $this->belongsTo(Utilisateur::class, 'destinataire_id');
+    }
+
+    public function annonce()
+    {
+        return $this->belongsTo(Annonce::class, 'annonce_id');
     }
 }

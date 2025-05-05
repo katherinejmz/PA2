@@ -2,38 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Evaluation extends Model
 {
-    use HasFactory;
+    protected $fillable = ['utilisateur_id', 'client_id', 'annonce_id', 'note', 'commentaire'];
 
-    protected $table = 'evaluations';
+    public function utilisateur()
+    {
+        return $this->belongsTo(Utilisateur::class, 'utilisateur_id');
+    }
 
-    protected $fillable = [
-        'id_client',
-        'id_livreur',
-        'id_prestataire',
-        'note',
-        'commentaire',
-    ];
-
-    // Émetteur de l'évaluation
     public function client()
     {
-        return $this->belongsTo(Client::class, 'id_client');
+        return $this->belongsTo(Utilisateur::class, 'client_id');
     }
 
-    // Cible : livreur évalué
-    public function livreur()
+    public function annonce()
     {
-        return $this->belongsTo(Livreur::class, 'id_livreur');
-    }
-
-    // Cible : prestataire évalué
-    public function prestataire()
-    {
-        return $this->belongsTo(Prestataire::class, 'id_prestataire');
+        return $this->belongsTo(Annonce::class);
     }
 }
