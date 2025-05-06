@@ -11,9 +11,9 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-blue-600 text-white px-6 py-4 flex justify-between items-center shadow">
-      <div className="text-xl font-bold">EcoDeli</div>
-      <ul className="flex space-x-6 items-center">
+    <nav className="bg-primary text-white px-6 py-4 flex justify-between items-center shadow-md">
+      <div className="text-2xl font-bold tracking-wide">EcoDeli</div>
+      <ul className="flex space-x-6 text-sm font-medium">
         <li><Link to="/" className="hover:text-gray-200">Accueil</Link></li>
 
         {!user && (

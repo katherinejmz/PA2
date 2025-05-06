@@ -8,40 +8,34 @@ export default function Register() {
     prenom: "",
     email: "",
     password: "",
-    confirmPassword: "",
-    adresse: "",
-    telephone: "",
-    pays: "",
+    password_confirmation: "",
     role: "client",
+    pays: "",
+    telephone: "",
+    adresse_postale: ""
   });
-
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.nom.trim()) newErrors.nom = "Le nom est requis.";
-    if (!formData.prenom.trim()) newErrors.prenom = "Le prénom est requis.";
-    if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
-      newErrors.email = "Adresse email invalide.";
-    if (formData.password.length < 6)
-      newErrors.password = "Le mot de passe doit contenir au moins 6 caractères.";
-    if (formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Les mots de passe ne correspondent pas.";
-    if (!formData.adresse.trim()) newErrors.adresse = "Adresse requise.";
-    if (!formData.telephone.match(/^[0-9]{10}$/))
-      newErrors.telephone = "Numéro de téléphone invalide.";
-    if (!formData.pays.trim()) newErrors.pays = "Le pays est requis.";
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^(\+?\d{1,3})?[\s.-]?\(?\d{2,4}\)?[\s.-]?\d{2,4}[\s.-]?\d{2,4}$/;
+
+    if (!emailRegex.test(formData.email)) newErrors.email = "Email invalide";
+    if (!passwordRegex.test(formData.password)) newErrors.password = "Mot de passe trop faible (8 caractères min., majuscule, chiffre, symbole)";
+    if (formData.password !== formData.password_confirmation) newErrors.password_confirmation = "Les mots de passe ne correspondent pas";
+    if (formData.telephone && !phoneRegex.test(formData.telephone)) newErrors.telephone = "Téléphone invalide";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: null });
   };
 
   const handleSubmit = async (e) => {
@@ -49,74 +43,48 @@ export default function Register() {
     if (!validate()) return;
 
     try {
-      await api.post("/utilisateurs", formData);
-      alert("Inscription réussie !");
-      navigate("/login");
+      await api.post("/register", formData);
+      setSuccessMessage("Inscription réussie ! Vous allez être redirigé...");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (error) {
-      alert("Erreur lors de l'inscription : " + (error.response?.data?.message || "inconnue"));
-      console.error(error);
+      const message = error.response?.data?.message || "Erreur serveur.";
+      alert(message);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 space-y-4">
-      <h2 className="text-xl font-bold">Inscription</h2>
-      {["nom", "prenom", "email", "adresse", "telephone", "pays"].map((field) => (
-        <div key={field}>
-          <input
-            type="text"
-            name={field}
-            placeholder={field[0].toUpperCase() + field.slice(1)}
-            value={formData[field]}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-          />
-          {errors[field] && <p className="text-red-600 text-sm">{errors[field]}</p>}
-        </div>
-      ))}
+      <h2 className="text-2xl font-bold text-center">Inscription</h2>
 
-      <div>
-        <input
-          type="password"
-          name="password"
-          placeholder="Mot de passe"
-          value={formData.password}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        />
-        {errors.password && <p className="text-red-600 text-sm">{errors.password}</p>}
-      </div>
+      {successMessage && <p className="text-green-600 text-center">{successMessage}</p>}
 
-      <div>
-        <input
-          type="password"
-          name="confirmPassword"
-          placeholder="Confirmez le mot de passe"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        />
-        {errors.confirmPassword && (
-          <p className="text-red-600 text-sm">{errors.confirmPassword}</p>
-        )}
-      </div>
+      <input name="nom" placeholder="Nom" value={formData.nom} onChange={handleChange} required className="w-full p-2 border rounded" />
+      <input name="prenom" placeholder="Prénom" value={formData.prenom} onChange={handleChange} required className="w-full p-2 border rounded" />
+      
+      <input name="email" placeholder="Email" value={formData.email} onChange={handleChange} required className="w-full p-2 border rounded" />
+      {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
 
-      <select
-        name="role"
-        value={formData.role}
-        onChange={handleChange}
-        className="w-full p-2 border rounded"
-      >
+      <input name="password" type="password" placeholder="Mot de passe" value={formData.password} onChange={handleChange} required className="w-full p-2 border rounded" />
+      {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+
+      <input name="password_confirmation" type="password" placeholder="Confirmation du mot de passe" value={formData.password_confirmation} onChange={handleChange} required className="w-full p-2 border rounded" />
+      {errors.password_confirmation && <p className="text-red-500 text-sm">{errors.password_confirmation}</p>}
+
+      <select name="role" value={formData.role} onChange={handleChange} className="w-full p-2 border rounded" required>
         <option value="client">Client</option>
         <option value="commercant">Commerçant</option>
         <option value="livreur">Livreur</option>
         <option value="prestataire">Prestataire</option>
       </select>
 
-      <button
-        type="submit"
-        className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
-      >
+      <input name="pays" placeholder="Pays" value={formData.pays} onChange={handleChange} className="w-full p-2 border rounded" />
+
+      <input name="telephone" placeholder="Téléphone" value={formData.telephone} onChange={handleChange} className="w-full p-2 border rounded" />
+      {errors.telephone && <p className="text-red-500 text-sm">{errors.telephone}</p>}
+
+      <input name="adresse_postale" placeholder="Adresse postale" value={formData.adresse_postale} onChange={handleChange} className="w-full p-2 border rounded" />
+
+      <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
         S'inscrire
       </button>
     </form>
