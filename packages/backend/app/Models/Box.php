@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Box extends Model
 {
-    protected $table = 'box';
-
     protected $fillable = [
         'entrepot_id',
         'code_box',

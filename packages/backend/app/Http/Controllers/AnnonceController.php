@@ -8,9 +8,32 @@ use Illuminate\Support\Facades\Auth;
 
 class AnnonceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Annonce::with(['client', 'commercant', 'prestataire', 'livreurs'])->get());
+        $query = Annonce::with(['client', 'commercant', 'prestataire', 'livreurs']);
+
+        // Filtrer par type
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        // Recherche mot-clé (titre ou description)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('titre', 'ILIKE', "%$search%")
+                  ->orWhere('description', 'ILIKE', "%$search%");
+            });
+        }
+
+        // Tri par prix proposé
+        if ($request->filled('sort') && in_array($request->sort, ['asc', 'desc'])) {
+            $query->orderBy('prix_propose', $request->sort);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        return response()->json($query->get());
     }
 
     public function show($id)
@@ -40,7 +63,6 @@ class AnnonceController extends Controller
 
         $annonceData = array_merge($validated, ['id_client' => $user->id]);
 
-        // Assigner les rôles selon le type d’annonce
         if ($validated['type'] === 'produit_livre') {
             $annonceData['id_commercant'] = $user->id;
         } elseif ($validated['type'] === 'service') {
@@ -49,7 +71,10 @@ class AnnonceController extends Controller
 
         $annonce = Annonce::create($annonceData);
 
-        return response()->json(['message' => 'Annonce créée avec succès.', 'annonce' => $annonce], 201);
+        return response()->json([
+            'message' => 'Annonce créée avec succès.',
+            'annonce' => $annonce
+        ], 201);
     }
 
     public function update(Request $request, $id)

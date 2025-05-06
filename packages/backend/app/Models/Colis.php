@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Colis extends Model
 {
     protected $fillable = [
-        'annonce_id',
+        'commande_id',
         'box_id',
         'livreur_id',
         'etat',
@@ -15,9 +15,9 @@ class Colis extends Model
         'date_retrait',
     ];
 
-    public function annonce()
+    public function commande()
     {
-        return $this->belongsTo(Annonce::class, 'annonce_id');
+        return $this->belongsTo(Commande::class, 'commande_id');
     }
 
     public function box()

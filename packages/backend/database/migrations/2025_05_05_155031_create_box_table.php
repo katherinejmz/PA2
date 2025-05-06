@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('box', function (Blueprint $table) {
+        Schema::create('boxes', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('entrepot_id');
-            $table->string('code_box'); // identifiant interne
-        
-            $table->boolean('est_occupe')->default(false); // true si un colis est présent
-        
+            $table->string('code_box');
+            $table->boolean('est_occupe')->default(false);
             $table->timestamps();
         
             $table->foreign('entrepot_id')->references('id')->on('entrepots')->onDelete('cascade');

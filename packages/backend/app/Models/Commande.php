@@ -26,4 +26,10 @@ class Commande extends Model
     {
         return $this->belongsTo(Utilisateur::class, 'client_id');
     }
+
+    public function colis()
+    {
+        return $this->hasOne(Colis::class, 'commande_id');
+    }
+
 }
