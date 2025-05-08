@@ -7,6 +7,10 @@ import MainLayout from "../layouts/MainLayout";
 import PrivateRoute from "./PrivateRoute";
 import Annonces from "../pages/Annonces";
 import CreerAnnonce from "../pages/CreerAnnonce";
+import AnnonceDetail from "../pages/AnnonceDetail";
+import AdresseLivraison from "../pages/AdresseLivraison";
+import Paiement from "../pages/Paiement";
+import DetailsService from "../pages/DetailsService";
 
 export default function AppRouter() {
   return (
@@ -33,6 +37,14 @@ export default function AppRouter() {
             }
           />
           <Route
+            path="/annonces/:id"
+            element={
+              <PrivateRoute>
+                <AnnonceDetail />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/annonces/creer"
             element={
               <PrivateRoute>
@@ -40,6 +52,24 @@ export default function AppRouter() {
               </PrivateRoute>
             }
           />
+          <Route path="/adresse-livraison/:commandeId" element={<AdresseLivraison />} />
+          <Route
+            path="/paiement/:commandeId"
+            element={
+              <PrivateRoute>
+                <Paiement />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/details-service/:commandeId"
+            element={
+              <PrivateRoute>
+                <DetailsService />
+              </PrivateRoute>
+            }
+          />
+
         </Routes>
       </MainLayout>
     </Router>

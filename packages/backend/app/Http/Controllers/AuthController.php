@@ -25,11 +25,8 @@ class AuthController extends Controller
             ]);
         }
 
-        // Récupérer un ID lié en fonction du rôle
-        $idCommercant = null;
-        if ($user->role === 'commercant') {
-            $idCommercant = Commercant::where('id_utilisateur', $user->id)->value('id');
-        }
+        // L'ID du commerçant est l'ID utilisateur si role === commerçant
+        $idCommercant = $user->role === 'commercant' ? $user->id : null;
 
         return response()->json([
             'token' => $user->createToken('auth_token')->plainTextToken,
@@ -43,6 +40,7 @@ class AuthController extends Controller
             ],
         ]);
     }
+
 
     public function logout(Request $request)
     {

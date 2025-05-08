@@ -107,7 +107,12 @@ export default function Annonces() {
         <ul className="space-y-4">
           {annonces.map((annonce) => (
             <li key={annonce.id} className="p-4 border rounded bg-white shadow">
-              <h3 className="text-lg font-semibold">{annonce.titre}</h3>
+              <h3
+                onClick={() => navigate(`/annonces/${annonce.id}`)}
+                className="text-lg font-semibold text-blue-600 hover:underline cursor-pointer"
+              >
+                {annonce.titre}
+              </h3>
               <p>{annonce.description}</p>
               <p className="text-sm text-gray-500">
                 Type : {annonce.type} • Prix : {annonce.prix_propose} € • Départ : {annonce.lieu_depart}

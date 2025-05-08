@@ -106,5 +106,10 @@ class Utilisateur extends Authenticatable
         return $this->hasMany(Notification::class, 'utilisateur_id');
     }
 
+    public function annoncesLivrees()
+    {
+        return $this->belongsToMany(Annonce::class, 'annonce_utilisateur', 'utilisateur_id', 'annonce_id');
+    }
+
 
 }

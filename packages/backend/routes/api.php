@@ -16,6 +16,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CommunicationController;
 use App\Http\Controllers\EtapeLivraisonController;
 use App\Http\Controllers\PortefeuilleController;
+use App\Http\Controllers\AdresseLivraisonController;
 
 // Authentification
 Route::post('/login', [AuthController::class, 'login']);
@@ -47,7 +48,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 
 // CLIENT uniquement
 Route::middleware(['auth:sanctum', 'role:client'])->group(function () {
-    Route::post('/commandes', [CommandeController::class, 'store']);
     Route::post('/evaluations', [EvaluationController::class, 'store']);
     Route::post('/factures', [FactureController::class, 'store']);
 });
@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Commandes
     Route::get('/commandes', [CommandeController::class, 'index']);
     Route::get('/commandes/{id}', [CommandeController::class, 'show']);
+    Route::post('/commandes', [CommandeController::class, 'store']);
 
     // Paiements
     Route::get('/paiements', [PaiementController::class, 'index']);
@@ -126,6 +127,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/portefeuille', [PortefeuilleController::class, 'show']);
     Route::post('/portefeuille/credit', [PortefeuilleController::class, 'credit']);
     Route::post('/portefeuille/debit', [PortefeuilleController::class, 'debit']);
+
+    // Adresse-Livraison
+    Route::post('/adresses-livraison', [AdresseLivraisonController::class, 'store']);
+
+    Route::post('/annonces/{id}/accepter', [AnnonceController::class, 'accepter']);
 
     // Déconnexion
     Route::post('/logout', [AuthController::class, 'logout']);

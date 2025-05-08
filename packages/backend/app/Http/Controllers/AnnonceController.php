@@ -111,4 +111,29 @@ class AnnonceController extends Controller
 
         return response()->json(['message' => 'Annonce supprimée avec succès.']);
     }
+
+
+    public function accepter(Request $request, $id)
+    {
+        $user = auth()->user();
+
+        if (! $user || $user->role !== 'livreur') {
+            return response()->json(['message' => 'Seuls les livreurs peuvent accepter une annonce.'], 403);
+        }
+
+        $annonce = Annonce::find($id);
+
+        if (! $annonce) {
+            return response()->json(['message' => 'Annonce introuvable.'], 404);
+        }
+
+        if (!in_array($annonce->type, ['livraison_client', 'produit_livre'])) {
+            return response()->json(['message' => 'Ce type d\'annonce ne peut pas être accepté par un livreur.'], 400);
+        }
+
+        $annonce->livreurs()->syncWithoutDetaching([$user->id]);
+
+        return response()->json(['message' => 'Annonce acceptée avec succès.']);
+    }
+
 }

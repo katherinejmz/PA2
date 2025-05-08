@@ -27,6 +27,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // D'abord supprime la table boxes
+        Schema::dropIfExists('boxes');
+
+        // Puis supprime entrepots
         Schema::dropIfExists('entrepots');
     }
 };

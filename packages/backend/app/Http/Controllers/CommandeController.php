@@ -30,6 +30,10 @@ class CommandeController extends Controller
     {
         $utilisateur = Auth::user();
 
+        if ($utilisateur->role !== 'client') {
+            return response()->json(['message' => 'Seuls les clients peuvent commander.'], 403);
+        }
+
         $validated = $request->validate([
             'annonce_id' => 'required|exists:annonces,id',
             'montant' => 'required|numeric|min:0',
@@ -44,7 +48,7 @@ class CommandeController extends Controller
         $commande = Commande::create([
             'annonce_id' => $annonce->id,
             'client_id' => $utilisateur->id,
-            'montant' => $validated['montant'],
+            'montant' => $annonce->prix_propose,
             'statut' => 'en_attente',
             'achete_le' => now(),
         ]);

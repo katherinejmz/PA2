@@ -32,4 +32,10 @@ class Commande extends Model
         return $this->hasOne(Colis::class, 'commande_id');
     }
 
+    public function adresseLivraison()
+    {
+        return $this->hasOne(AdresseLivraison::class);
+    }
+
+
 }
