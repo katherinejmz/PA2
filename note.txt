@@ -1,0 +1,60 @@
+
+Utilisateur 1 — Client
+Nom : Balica
+
+Prénom : Nicu
+
+Email : alice.dupont@example.com
+
+Mot de passe : Client123!
+
+Rôle : client
+
+----------------------------------------------------------
+
+
+Utilisateur 2 — Commerçant
+Nom : Martin
+
+Prénom : Julien
+
+Email : julien.martin@example.com
+
+Mot de passe : Commerce123!
+
+Rôle : commercant
+
+-----------------------------------------------------------
+
+
+Utilisateur 3 — Prestataire
+Nom : Leroy
+
+Prénom : Clara
+
+Email : clara.leroy@example.com
+
+Mot de passe : Service123!
+
+Rôle : prestataire
+
+
+------------------------------------------------------------
+
+Utilisateur 4 — Livreur
+Nom : Bernard
+
+Prénom : Maxime
+
+Email : maxime.bernard@example.com
+
+Mot de passe : Livreur123!
+
+Rôle : livreur
+
+
+
+
+Commande pour produit a livrer ok
+
+commande pour services
