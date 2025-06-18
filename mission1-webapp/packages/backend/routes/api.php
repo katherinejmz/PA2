@@ -17,16 +17,36 @@ use App\Http\Controllers\CommunicationController;
 use App\Http\Controllers\EtapeLivraisonController;
 use App\Http\Controllers\PortefeuilleController;
 use App\Http\Controllers\AdresseLivraisonController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CommercantController;
 use App\Http\Controllers\LivreurController;
 use App\Http\Controllers\PrestataireController;
+use App\Http\Controllers\PrestationController;
+use App\Http\Controllers\PlanningPrestataireController;
+use App\Http\Controllers\InterventionController;
+use App\Http\Controllers\FacturePrestataireController;
+use App\Http\Controllers\StatAdminController;
+use App\Http\Controllers\Api\EmailVerificationController;
+use Laravel\Fortify\Http\Controllers\EmailVerificationNotificationController;
+use App\Http\Controllers\TwoFactorController;
 
 // Authentification
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
+// Route de confirmation de l'email (sans authentification)
+Route::get('/verify-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware('signed')
+    ->name('verification.verify');
+
 // ADMIN uniquement
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    // Creation d'un Admin
+    Route::post('/admin/register', [AuthController::class, 'registerAdmin']);
+    
+    // Dashboard
+    Route::get('/admin/statistiques', [StatAdminController::class, 'index']);
+
     // Gestion des utilisateurs
     Route::post('/utilisateurs', [UtilisateurController::class, 'store']);
     Route::patch('/utilisateurs/{id}', [UtilisateurController::class, 'update']);
@@ -47,17 +67,26 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     // Annonces
     Route::patch('/annonces/{id}', [AnnonceController::class, 'update']);
     Route::delete('/annonces/{id}', [AnnonceController::class, 'destroy']);
+
+    // Client
+    Route::get('/clients', [ClientController::class, 'index']);
+    Route::get('/clients/{id}', [ClientController::class, 'show']);
+    Route::patch('/clients/{id}', [ClientController::class, 'update']);
+
 });
 
 // CLIENT uniquement
-Route::middleware(['auth:sanctum', 'role:client'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin,client'])->group(function () {
+    Route::get('/clients', [ClientController::class, 'index']);
+    Route::get('/clients/{id}', [ClientController::class, 'show']);
+    Route::patch('/clients/{id}', [ClientController::class, 'update']);
     Route::post('/evaluations', [EvaluationController::class, 'store']);
     Route::post('/factures', [FactureController::class, 'store']);
     
 });
 
 // LIVREUR uniquement
-Route::middleware(['auth:sanctum', 'role:livreur'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin,livreur'])->group(function () {
     Route::post('/etapes', [EtapeLivraisonController::class, 'store']);
     Route::post('/colis', [ColisController::class, 'store']);
     Route::patch('/colis/{id}/box', [ColisController::class, 'affecterBox']);
@@ -69,14 +98,17 @@ Route::middleware(['auth:sanctum', 'role:livreur'])->group(function () {
 });
 
 // COMMERCANT uniquement
-Route::get('/commercants/{id}', [CommercantController::class, 'show']);
-Route::patch('/commercants/{id}', [CommercantController::class, 'update']);
-
+Route::middleware(['auth:sanctum', 'role:admin,commercant'])->group(function () {
+    Route::get('/commercants/{id}', [CommercantController::class, 'show']);
+    Route::patch('/commercants/{id}', [CommercantController::class, 'update']);
+});
 
 // PRESTATAIRE uniquement
-Route::get('/prestataires/{id}', [PrestataireController::class, 'show']);
-Route::patch('/prestataires/{id}', [PrestataireController::class, 'update']);
-
+Route::middleware(['auth:sanctum', 'role:admin,prestataire'])->group(function () {
+    Route::get('/prestataires/{id}', [PrestataireController::class, 'show']);
+    Route::patch('/prestataires/{id}', [PrestataireController::class, 'update']);
+    Route::post('/prestations', [PrestationController::class, 'store']);
+});
 
 // Routes accessibles à tout utilisateur connecté
 Route::middleware('auth:sanctum')->group(function () {
@@ -95,8 +127,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/annonces', [AnnonceController::class, 'store']);
     Route::patch('/annonces/{id}', [AnnonceController::class, 'update']);
     Route::delete('/annonces/{id}', [AnnonceController::class, 'destroy']);
+    Route::post('/annonces/{id}/accepter', [AnnonceController::class, 'accepter']);
     
-
     // Commandes
     Route::get('/commandes', [CommandeController::class, 'index']);
     Route::get('/commandes/{id}', [CommandeController::class, 'show']);
@@ -152,7 +184,40 @@ Route::middleware('auth:sanctum')->group(function () {
     // Adresse-Livraison
     Route::post('/adresses-livraison', [AdresseLivraisonController::class, 'store']);
 
-    Route::post('/annonces/{id}/accepter', [AnnonceController::class, 'accepter']);
+    // Prestations
+    Route::get('/prestataires', [PrestataireController::class, 'index']);
+    Route::get('/prestations', [PrestationController::class, 'index']);
+    Route::get('/prestations/catalogue', [PrestationController::class, 'catalogue']);
+    Route::get('/prestations/{id}', [PrestationController::class, 'show']);
+    Route::put('/prestations/{id}', [PrestationController::class, 'update']);
+    Route::delete('/prestations/{id}', [PrestationController::class, 'destroy']);
+    Route::patch('/prestations/{id}/statut', [PrestationController::class, 'changerStatut']);
+    Route::patch('/prestations/{id}/reserver', [PrestationController::class, 'reserver']);
+
+
+    // PlanningPrestataire
+    Route::get('/plannings', [PlanningPrestataireController::class, 'index']);
+    Route::post('/plannings', [PlanningPrestataireController::class, 'store']);
+    Route::delete('/plannings/{id}', [PlanningPrestataireController::class, 'destroy']);
+
+    // InterventionPrestataire
+    Route::get('/interventions', [InterventionController::class, 'index']);
+    Route::post('/interventions', [InterventionController::class, 'store']);
+    Route::put('/interventions/{id}', [InterventionController::class, 'update']);
+
+    // FacturePrestataire
+    Route::get('/factures-prestataire', [FacturePrestataireController::class, 'mesFactures']);
+    Route::post('/factures-prestataire/{mois}', [FacturePrestataireController::class, 'genererFactureMensuelle']);
+
+    // Demande de renvoi du lien de confirmation par email
+    Route::post('/email/verification-notification', [\Laravel\Fortify\Http\Controllers\EmailVerificationNotificationController::class, 'store'])
+        ->name('verification.send');
+
+
+    // Double Authentification
+    Route::get('/user/2fa-status', [TwoFactorController::class, 'status']);
+    Route::post('/user/2fa/enable', [TwoFactorController::class, 'enable']);
+    Route::post('/user/2fa/disable', [TwoFactorController::class, 'disable']);
 
     // Déconnexion
     Route::post('/logout', [AuthController::class, 'logout']);

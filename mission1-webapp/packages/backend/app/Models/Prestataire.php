@@ -20,4 +20,20 @@ class Prestataire extends Model
     {
         return $this->belongsTo(Utilisateur::class);
     }
+
+    public function prestations()
+    {
+        return $this->hasMany(Prestation::class);
+    }
+
+    public function plannings()
+    {
+        return $this->hasMany(PlanningPrestataire::class);
+    }
+
+    public function factures()
+    {
+        return $this->hasMany(FacturePrestataire::class);
+    }
+
 }

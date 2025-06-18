@@ -6,11 +6,9 @@ import Register from "../pages/Register";
 import RegisterCommercant from "../pages/RegisterCommercant";
 import RegisterLivreur from "../pages/RegisterLivreur";
 import RegisterPrestataire from "../pages/RegisterPrestataire";
-import MonProfilRedirect from "../pages/MonProfilRedirect";
-import ProfilClient from "../pages/ProfilClient";
-import ProfilCommercant from "../pages/ProfilCommercant";
-import ProfilLivreur from "../pages/ProfilLivreur";
-import ProfilPrestataire from "../pages/ProfilPrestataire";
+import Profil from "../pages/Profil";
+import EditProfil from "../pages/EditProfil";
+import ChangePassword from "../pages/ChangePassword";
 import MainLayout from "../layouts/MainLayout";
 import PrivateRoute from "./PrivateRoute";
 import Annonces from "../pages/Annonces";
@@ -22,6 +20,13 @@ import DetailsService from "../pages/DetailsService";
 import MesAnnonces from "../pages/MesAnnonces";
 import AnnoncesDisponibles from "../pages/AnnoncesDisponibles";
 import MesLivraisons from "../pages/MesLivraisons";
+import Planning from "../pages/Planning";
+import MesPrestations from "../pages/MesPrestations";
+import Interventions from "../pages/Interventions";
+import Factures from "../pages/Factures";
+import PublierPrestation from "../pages/PublierPrestation";
+import Notifications from "../pages/Notifications";
+import CataloguePrestations from "../pages/CataloguePrestations";
 
 
 export default function AppRouter() {
@@ -39,7 +44,9 @@ export default function AppRouter() {
             path="/annonces"
             element={
               <PrivateRoute>
-                <Annonces />
+                <RoleRoute role={["client", "commercant"]}>
+                  <Annonces />
+                </RoleRoute>
               </PrivateRoute>
             }
           />
@@ -55,7 +62,9 @@ export default function AppRouter() {
             path="/annonces/creer"
             element={
               <PrivateRoute>
-                <CreerAnnonce />
+                <RoleRoute role={["client", "commercant"]}>
+                  <CreerAnnonce />
+                </RoleRoute>
               </PrivateRoute>
             }
           />
@@ -63,7 +72,9 @@ export default function AppRouter() {
             path="/mes-annonces"
             element={
               <PrivateRoute>
-                <MesAnnonces />
+                <RoleRoute role={["client", "commercant"]}>
+                  <MesAnnonces />
+                </RoleRoute>
               </PrivateRoute>
             }
           />
@@ -88,51 +99,25 @@ export default function AppRouter() {
             path="/monprofil"
             element={
               <PrivateRoute>
-                <MonProfilRedirect />
+                <Profil />
               </PrivateRoute>
             }
           />
 
           <Route
-            path="/profil-client"
+            path="/profil/edit"
             element={
               <PrivateRoute>
-                <RoleRoute role="client">
-                  <ProfilClient />
-                </RoleRoute>
+                <EditProfil />
               </PrivateRoute>
             }
           />
 
           <Route
-            path="/profil-commercant"
+            path="/profil/motdepasse"
             element={
               <PrivateRoute>
-                <RoleRoute role="commercant">
-                  <ProfilCommercant />
-                </RoleRoute>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/profil-livreur"
-            element={
-              <PrivateRoute>
-                <RoleRoute role="livreur">
-                  <ProfilLivreur />
-                </RoleRoute>
-              </PrivateRoute>
-            }
-          />
-
-          <Route
-            path="/profil-prestataire"
-            element={
-              <PrivateRoute>
-                <RoleRoute role="prestataire">
-                  <ProfilPrestataire />
-                </RoleRoute>
+                <ChangePassword />
               </PrivateRoute>
             }
           />
@@ -151,6 +136,82 @@ export default function AppRouter() {
             element={
               <PrivateRoute>
                 <MesLivraisons />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/planning"
+            element={
+              <PrivateRoute>
+                <RoleRoute role={["prestataire"]}>
+                  <Planning />
+                </RoleRoute>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/mes-prestations"
+            element={
+              <PrivateRoute>
+                <RoleRoute role={["client", "prestataire"]}>
+                  <MesPrestations />
+                </RoleRoute>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/interventions"
+            element={
+              <PrivateRoute>
+                <RoleRoute role={["client", "prestataire"]}>
+                  <Interventions />
+                </RoleRoute>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/factures"
+            element={
+              <PrivateRoute>
+                <RoleRoute role={["prestataire"]}>
+                  <Factures />
+                </RoleRoute>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/prestations/publier"
+            element={
+              <PrivateRoute>
+                <RoleRoute role="prestataire">
+                  <PublierPrestation />
+                </RoleRoute>
+              </PrivateRoute>
+            }
+          />
+
+
+          <Route
+            path="/notifications"
+            element={
+              <PrivateRoute>
+                <Notifications />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/prestations/catalogue"
+            element={
+              <PrivateRoute>
+                <RoleRoute role="client">
+                  <CataloguePrestations />
+                </RoleRoute>
               </PrivateRoute>
             }
           />

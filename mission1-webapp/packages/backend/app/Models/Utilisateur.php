@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Fortify\TwoFactorAuthenticatable;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-class Utilisateur extends Authenticatable
+class Utilisateur extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     protected $table = 'utilisateurs';
 
@@ -17,6 +19,7 @@ class Utilisateur extends Authenticatable
         'nom',
         'prenom',
         'email',
+        'identifiant',
         'password',
         'role',
         'pays',
@@ -27,13 +30,15 @@ class Utilisateur extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_recovery_codes',
+        'two_factor_secret',
     ];
 
-    // Mutator pour hasher automatiquement le mot de passe
-    public function setPasswordAttribute($value)
+    // Mutator pour hasher automatiquement le mot de passe, pas besoin ici
+    /*public function setPasswordAttribute($value)
     {
         $this->attributes['password'] = bcrypt($value);
-    }
+    // }*/
 
     // Annonces créées par le client (type livraison_client, service ou produit_livre)
     public function annoncesClient()

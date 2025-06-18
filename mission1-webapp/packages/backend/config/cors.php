@@ -1,9 +1,10 @@
 <?php
 
 return [
-    'paths' => ['api/*'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'register'],
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['http://localhost:5173', 'http://localhost:6174'],
     'allowed_headers' => ['*'],
-    'supports_credentials' => false,
+    'max_age' => 0,
+    'supports_credentials' => true,
 ];

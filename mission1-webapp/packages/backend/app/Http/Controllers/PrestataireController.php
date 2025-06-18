@@ -7,6 +7,16 @@ use Illuminate\Http\Request;
 
 class PrestataireController extends Controller
 {
+
+    public function index()
+    {
+        $prestataires = Prestataire::with('utilisateur')
+            ->where('valide', true)
+            ->get();
+
+        return response()->json($prestataires);
+    }
+
     public function show($id)
     {
         $prestataire = Prestataire::where('utilisateur_id', $id)->first();

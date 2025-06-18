@@ -3,10 +3,15 @@ import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import { Transition } from "@headlessui/react";
 
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const [prestationsOpen, setPrestationsOpen] = useState(false);
+  const [annoncesOpen, setAnnoncesOpen] = useState(false);
+  
 
   const handleLogout = () => {
     logout();
@@ -32,35 +37,112 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <li>
-                <Link
-                  to={
-                    user?.role === "client"
-                      ? "/profil-client"
-                      : user?.role === "commercant"
-                      ? "/profil-commercant"
-                      : user?.role === "livreur"
-                      ? "/profil-livreur"
-                      : user?.role === "prestataire"
-                      ? "/profil-prestataire"
-                      : "/profil"
-                  }
-                  className="hover:text-lime-300 transition"
-                >
-                  Mon profil
-                </Link>
-              </li>
+              <Link to="/monprofil" className="hover:text-lime-300 transition">Mon Profil</Link>
 
-              {["client", "commercant", "prestataire"].includes(user?.role) ? (
+              {/* Menu Prestations - client ou prestataire */}
+              {["client", "prestataire"].includes(user?.role) && (
+                <li className="relative">
+                  <button
+                    onClick={() => setPrestationsOpen(!prestationsOpen)}
+                    onBlur={() => setTimeout(() => setPrestationsOpen(false), 150)} // ferme après clic
+                    className="hover:text-lime-300 transition"
+                  >
+                    Prestations ▾
+                  </button>
+
+                  {prestationsOpen && (
+                    <ul
+                      className="absolute right-0 z-50 bg-white shadow-lg mt-2 rounded text-sm text-green-900 min-w-[200px] border"
+                      onMouseLeave={() => setPrestationsOpen(false)}
+                    >
+                      {user.role === "client" && (
+                        <>
+                          <li><Link to="/mes-prestations" className="block px-4 py-2 hover:bg-lime-100">Mes prestations</Link></li>
+                          <li><Link to="/prestations/catalogue" className="block px-4 py-2 hover:bg-lime-100">Voir les prestations</Link></li>
+                          <li><Link to="/interventions" className="block px-4 py-2 hover:bg-lime-100">Interventions</Link></li>
+                        </>
+                      )}
+                      {user.role === "prestataire" && (
+                        <>
+                          <li><Link to="/mes-prestations" className="block px-4 py-2 hover:bg-lime-100">Mes prestations</Link></li>
+                          <li><Link to="/prestations/publier" className="block px-4 py-2 hover:bg-lime-100">Publier une prestation</Link></li>
+                          <li><Link to="/interventions" className="block px-4 py-2 hover:bg-lime-100">Interventions</Link></li>
+                          <li><Link to="/planning" className="block px-4 py-2 hover:bg-lime-100">Planning</Link></li>
+                          <li><Link to="/factures" className="block px-4 py-2 hover:bg-lime-100">Factures</Link></li>
+                        </>
+                      )}
+                    </ul>
+                  )}
+                </li>
+              )}
+
+              {/* Menu Annonces */}
+              {["client", "commercant", "livreur"].includes(user?.role) && (
+                <li className="relative">
+                  <button
+                    onClick={() => setAnnoncesOpen(!annoncesOpen)}
+                    onBlur={() => setTimeout(() => setAnnoncesOpen(false), 150)}
+                    className="hover:text-lime-300 transition"
+                  >
+                    Annonces ▾
+                  </button>
+
+                  {annoncesOpen && (
+                    <ul
+                      className="absolute right-0 z-50 bg-white shadow-lg mt-2 rounded text-sm text-green-900 min-w-[200px] border"
+                      onMouseLeave={() => setAnnoncesOpen(false)}
+                    >
+                      {["client", "commercant"].includes(user.role) && (
+                        <>
+                          <li><Link to="/annonces" className="block px-4 py-2 hover:bg-lime-100">Annonces</Link></li>
+                          <li><Link to="/mes-annonces" className="block px-4 py-2 hover:bg-lime-100">Mes annonces</Link></li>
+                        </>
+                      )}
+                      {user.role === "livreur" && (
+                        <>
+                          <li><Link to="/annonces-disponibles" className="block px-4 py-2 hover:bg-lime-100">Annonces disponibles</Link></li>
+                          <li><Link to="/mes-livraisons" className="block px-4 py-2 hover:bg-lime-100">Mes livraisons</Link></li>
+                        </>
+                      )}
+                    </ul>
+                  )}
+                </li>
+              )}
+
+              {/*user?.role === "client" && (
                 <>
-                  <li><Link to="/annonces" className="block hover:text-lime-300">Annonces</Link></li>
-                  <li><Link to="/mes-annonces" className="block hover:text-lime-300">Mes annonces</Link></li>
+                  <li><Link to="/annonces" className="hover:text-lime-300">Annonces</Link></li>
+                  <li><Link to="/mes-annonces" className="hover:text-lime-300">Mes annonces</Link></li>
                 </>
-              ) : user?.role === "livreur" ? (
-                <li><Link to="/annonces-disponibles" className="block hover:text-lime-300">Annonces disponibles</Link>
-                <Link to="/mes-livraisons" className="hover:text-lime-300 transition">Mes livraisons</Link></li>
-                
-              ) : null}
+              )*/}
+
+              {/*user?.role === "prestataire" && (
+                <>
+                  <li></li>
+                </>
+              )*/}
+
+              {/*user?.role === "commercant" && (
+                <>
+                  <li><Link to="/annonces" className="hover:text-lime-300">Annonces</Link></li>
+                  <li><Link to="/mes-annonces" className="hover:text-lime-300">Mes annonces</Link></li>
+                </>
+              )*/}
+
+              {/*user?.role === "livreur" && (
+                <>
+                  <li><Link to="/annonces-disponibles" className="hover:text-lime-300">Annonces disponibles</Link></li>
+                  <li><Link to="/mes-livraisons" className="hover:text-lime-300">Mes livraisons</Link></li>
+                </>
+              )*/}
+
+              {user && (
+                <li>
+                  <Link to="/notifications" className="hover:text-lime-300">
+                    Notifications
+                  </Link>
+                </li>
+              )}
 
               <li>
                 <button onClick={handleLogout} className="hover:text-red-300 transition">
@@ -107,33 +189,42 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <li>
-                  <Link
-                    to={
-                      user?.role === "client"
-                        ? "/profil-client"
-                        : user?.role === "commercant"
-                        ? "/profil-commercant"
-                        : user?.role === "livreur"
-                        ? "/profil-livreur"
-                        : user?.role === "prestataire"
-                        ? "/profil-prestataire"
-                        : "/profil"
-                    }
-                    className="block hover:text-lime-300"
-                  >
-                    Mon profil
-                  </Link>
-                </li>
+                <Link to="/monprofil" className="hover:text-lime-300 transition">Mon Profil</Link>
 
-                {["client", "commercant", "prestataire"].includes(user?.role) ? (
+                {user?.role === "client" && (
                   <>
-                    <li><Link to="/annonces" className="hover:text-lime-300 transition">Annonces</Link></li>
-                    <li><Link to="/mes-annonces" className="hover:text-lime-300 transition">Mes annonces</Link></li>
+                    <li><Link to="/annonces" className="hover:text-lime-300">Annonces</Link></li>
+                    <li><Link to="/mes-annonces" className="hover:text-lime-300">Mes annonces</Link></li>
+                    <li><Link to="/mes-prestations" className="hover:text-lime-300">Prestations</Link></li>
+                    <li><Link to="/interventions" className="hover:text-lime-300">Interventions</Link></li>
+                    <li><Link to="/prestations/creer" className="hover:text-lime-300">Créer une prestation</Link></li>
                   </>
-                ) : user?.role === "livreur" ? (
-                  <li><Link to="/annonces-disponibles" className="hover:text-lime-300 transition">Annonces disponibles</Link></li>
-                ) : null}
+                )}
+
+                {user?.role === "prestataire" && (
+                  <>
+                    <li><Link to="/planning" className="hover:text-lime-300">Planning</Link></li>
+                    <li><Link to="/mes-prestations" className="hover:text-lime-300">Prestations</Link></li>
+                    <li><Link to="/interventions" className="hover:text-lime-300">Interventions</Link></li>
+                    <li><Link to="/factures" className="hover:text-lime-300">Factures</Link></li>
+                  </>
+                )}
+
+                {user?.role === "commercant" && (
+                  <>
+                    <li><Link to="/annonces" className="hover:text-lime-300">Annonces</Link></li>
+                    <li><Link to="/mes-annonces" className="hover:text-lime-300">Mes annonces</Link></li>
+                  </>
+                )}
+
+                {user?.role === "livreur" && (
+                  <>
+                    <li><Link to="/annonces-disponibles" className="hover:text-lime-300">Annonces disponibles</Link></li>
+                    <li><Link to="/mes-livraisons" className="hover:text-lime-300">Mes livraisons</Link></li>
+                  </>
+                )}
+
+
                 <li>
                   <button onClick={handleLogout} className="block hover:text-red-300">
                     Se déconnecter
