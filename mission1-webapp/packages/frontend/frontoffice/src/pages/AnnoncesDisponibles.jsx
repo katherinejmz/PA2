@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function AnnoncesDisponibles() {
   const { token } = useAuth();
   const [annonces, setAnnonces] = useState([]);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAnnonces = async () => {
@@ -30,8 +32,8 @@ export default function AnnoncesDisponibles() {
       await api.post(`/annonces/${annonceId}/accepter`, null, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Supprime l'annonce de la liste après acceptation
-      setAnnonces((prev) => prev.filter((a) => a.id !== annonceId));
+      alert("Étape de livraison créée. Vous pouvez la suivre dans 'Mes étapes'.");
+      navigate("/mes-etapes");
     } catch (err) {
       console.error("Erreur acceptation :", err);
       alert("Erreur lors de l'acceptation.");
@@ -45,7 +47,7 @@ export default function AnnoncesDisponibles() {
       <h2 className="text-2xl font-bold mb-6">Annonces disponibles</h2>
 
       {annonces.length === 0 ? (
-        <p>Aucune annonce disponible pour le moment.</p>
+        <p>Aucune annonce compatible pour le moment.</p>
       ) : (
         <ul className="space-y-6">
           {annonces.map((a) => (

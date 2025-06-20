@@ -4,7 +4,7 @@ import api from "../services/api";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function EditProfil() {
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({});
   const [message, setMessage] = useState("");
@@ -37,17 +37,64 @@ export default function EditProfil() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("");
+
+    const utilisateurData = {
+      nom: formData.nom,
+      prenom: formData.prenom,
+      email: formData.email,
+      pays: formData.pays,
+      telephone: formData.telephone,
+      adresse_postale: formData.adresse_postale,
+    };
+
     try {
-      await api.patch(`/utilisateurs/${user.id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
+      // PATCH utilisateur
+      const res = await api.patch(`/utilisateurs/${user.id}`, utilisateurData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // 🔄 MAJ user dans localStorage
+      const updatedUser = {
+        ...user,
+        ...utilisateurData,
+      };
+      updateUser(utilisateurData);
+
+      // PATCH données spécifiques selon le rôle
       if (user.role !== "client") {
-        await api.patch(`/${user.role}s/${user.id}`, formData, { headers: { Authorization: `Bearer ${token}` } });
+        const roleData = {};
+        if (user.role === "livreur") {
+          roleData.piece_identite = formData.piece_identite;
+          roleData.permis_conduire = formData.permis_conduire;
+        } else if (user.role === "commercant") {
+          roleData.nom_entreprise = formData.nom_entreprise;
+          roleData.siret = formData.siret;
+        } else if (user.role === "prestataire") {
+          roleData.domaine = formData.domaine;
+          roleData.description = formData.description;
+        }
+
+        await api.patch(`/${user.role}s/${user.id}`, roleData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
       }
-      setMessage("Profil mis à jour");
-      navigate("/monprofil");
-    } catch {
-      setMessage("Erreur lors de la mise à jour");
+
+      setMessage("✅ Profil mis à jour avec succès.");
+      setTimeout(() => setMessage(""), 5000);
+    } catch (error) {
+      console.error("Erreur de mise à jour :", error);
+      if (error.response?.data?.message) {
+        setMessage(`❌ ${error.response.data.message}`);
+      } else if (error.response?.data?.errors) {
+        const messages = Object.values(error.response.data.errors).flat();
+        setMessage(`❌ ${messages[0]}`);
+      } else {
+        setMessage("❌ Erreur inconnue lors de la mise à jour.");
+      }
     }
   };
+
 
   return (
     <div className="max-w-xl mx-auto mt-10 bg-white p-6 rounded shadow">

@@ -41,12 +41,6 @@ class Annonce extends Model
         return $this->belongsTo(Utilisateur::class, 'id_prestataire');
     }
 
-    // Livreurs associés via la table pivot (si type = livraison_client ou produit_livre)
-    public function livreurs()
-    {
-        return $this->belongsToMany(Utilisateur::class, 'annonce_utilisateur', 'annonce_id', 'utilisateur_id');
-    }
-
 
     // Commandes (achat/réservation d'une annonce)
     public function commandes()
@@ -57,6 +51,11 @@ class Annonce extends Model
     public function colis()
     {
         return $this->hasOne(Colis::class);
+    }
+
+    public function etapesLivraison()
+    {
+        return $this->hasMany(EtapeLivraison::class, 'annonce_id');
     }
     
 }

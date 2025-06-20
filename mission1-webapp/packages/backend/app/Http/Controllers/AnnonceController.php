@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Annonce;
+use App\Models\TrajetLivreur;
+use App\Models\EtapeLivraison;
+use App\Models\Entrepot;
 use Illuminate\Support\Facades\Auth;
 
 class AnnonceController extends Controller
@@ -133,136 +136,134 @@ class AnnonceController extends Controller
 
 
 
-    public function accepter(Request $request, $id)
-    {
-        $user = auth()->user();
-
-        if (! $user || $user->role !== 'livreur') {
-            return response()->json(['message' => 'Seuls les livreurs peuvent accepter une annonce.'], 403);
-        }
-
-        $annonce = Annonce::find($id);
-
-        if (! $annonce) {
-            return response()->json(['message' => 'Annonce introuvable.'], 404);
-        }
-
-        if (!in_array($annonce->type, ['livraison_client', 'produit_livre'])) {
-            return response()->json(['message' => 'Ce type d\'annonce ne peut pas être accepté par un livreur.'], 400);
-        }
-
-        $annonce->livreurs()->syncWithoutDetaching([$user->id]);
-
-        $annonce->statut = 'acceptee';
-        $annonce->save();
-
-        return response()->json(['message' => 'Annonce acceptée avec succès.']);
-    }
-
     public function mesAnnonces()
     {
         $user = Auth::user();
 
-        // Seulement pour clients
         if ($user->role !== 'client') {
             return response()->json(['message' => 'Non autorisé.'], 403);
         }
 
         $annonces = Annonce::where('id_client', $user->id)
-            ->with('livreurs') // charge les livreurs liés si existants
+            ->with(['etapesLivraison.livreur'])
             ->latest()
             ->get();
 
         return response()->json($annonces);
     }
 
+
     public function annoncesDisponibles()
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         if (! $user || $user->role !== 'livreur') {
             return response()->json(['message' => 'Accès refusé'], 403);
         }
 
-        $annonces = \App\Models\Annonce::whereIn('type', ['livraison_client', 'produit_livre'])
-            ->with(['client', 'commercant', 'livreurs'])
+        $trajets = TrajetLivreur::where('livreur_id', $user->id)->get();
+
+        if ($trajets->isEmpty()) {
+            return response()->json(['annonces_disponibles' => []]);
+        }
+
+        $annonces = Annonce::with(['etapesLivraison'])
+            ->whereIn('type', ['livraison_client', 'produit_livre'])
             ->get();
+
+        $disponibles = [];
+
+        foreach ($annonces as $annonce) {
+            $depart_actuel = $annonce->lieu_depart;
+
+            $etapes = $annonce->etapesLivraison()->get();
+
+            $lastStep = $etapes->filter(function ($etape) {
+                return $etape->statut === 'terminee';
+            })->last();
+
+            if ($lastStep) {
+                $depart_actuel = $lastStep->lieu_arrivee;
+            }
+
+            // Vérifie s’il existe au moins un trajet compatible
+            $compatible = $trajets->first(function ($trajet) use ($depart_actuel) {
+                return strcasecmp($trajet->ville_depart, $depart_actuel) === 0;
+            });
+
+            if ($compatible) {
+                $disponibles[] = $annonce;
+            }
+        }
 
         return response()->json([
             'livreur_connecte_id' => $user->id,
-            'annonces_disponibles' => $annonces
+            'annonces_disponibles' => $disponibles
         ]);
     }
 
-    public function mesLivraisons()
+
+    public function accepterAnnonce(Request $request, $id)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         if (! $user || $user->role !== 'livreur') {
-            return response()->json(['message' => 'Accès réservé aux livreurs.'], 403);
+            return response()->json(['message' => 'Accès refusé'], 403);
         }
 
-        $annonces = $user->livraisons() // relation belongsToMany côté Utilisateur
-            ->with(['client', 'commercant'])
-            ->latest()
-            ->get();
+        $annonce = Annonce::with('etapesLivraison')->findOrFail($id);
+        $trajets = TrajetLivreur::where('livreur_id', $user->id)->get();
 
-        return response()->json($annonces);
-    }
-
-    public function demarrerLivraison($id)
-    {
-        $annonce = Annonce::findOrFail($id);
-        $annonce->statut = 'en_cours';
-        $annonce->save();
-
-        return response()->json(['message' => 'Livraison démarrée.']);
-    }
-
-    public function marquerLivree($id)
-    {
-        $annonce = Annonce::findOrFail($id);
-        $annonce->statut = 'livree';
-        $annonce->save();
-
-        return response()->json(['message' => 'Annonce marquée comme livrée.']);
-    }
-
-    public function changerStatut(Request $request, $id)
-    {
-        $user = auth()->user();
-
-        if ($user->role !== 'livreur') {
-            return response()->json(['message' => 'Seuls les livreurs peuvent mettre à jour le statut.'], 403);
+        if ($trajets->isEmpty()) {
+            return response()->json(['message' => 'Aucun trajet disponible.'], 400);
         }
 
-        $request->validate([
-            'statut' => 'required|in:en_cours,livree',
+        // Point de départ actuel de l'annonce
+        $depart_actuel = $annonce->lieu_depart;
+        $etapes = $annonce->etapesLivraison()->get();
+
+        $lastStep = $etapes->filter(function ($etape) {
+            return $etape->statut === 'terminee';
+        })->last();
+
+        if ($lastStep) {
+            $depart_actuel = $lastStep->lieu_arrivee;
+        }
+
+        // Trouver un trajet dont la ville_depart correspond à ce point
+        $trajetCompatible = $trajets->first(function ($trajet) use ($depart_actuel) {
+            return strcasecmp($trajet->ville_depart, $depart_actuel) === 0;
+        });
+
+        if (! $trajetCompatible) {
+            return response()->json(['message' => 'Aucun trajet compatible avec l annonce.'], 400);
+        }
+
+        $destination = $trajetCompatible->ville_arrivee;
+
+        // Si le trajet ne va pas jusqu'au bout de l'annonce, chercher un entrepôt proche
+        if (strcasecmp($destination, $annonce->lieu_arrivee) !== 0) {
+            $entrepot = Entrepot::all()->sortBy(function ($e) use ($destination) {
+                return levenshtein(strtolower($e->ville), strtolower($destination));
+            })->first();
+
+            if ($entrepot) {
+                $destination = $entrepot->ville;
+            }
+        }
+
+        // Créer l'étape
+        EtapeLivraison::create([
+            'annonce_id' => $annonce->id,
+            'livreur_id' => $user->id,
+            'lieu_depart' => $depart_actuel,
+            'lieu_arrivee' => $destination,
+            'statut' => 'en_cours',
         ]);
 
-        $annonce = Annonce::with('livreurs')->find($id);
-
-        if (! $annonce) {
-            return response()->json(['message' => 'Annonce introuvable.'], 404);
-        }
-
-        // Vérifier que le livreur est bien affecté à cette annonce
-        if (! $annonce->livreurs->contains('id', $user->id)) {
-            return response()->json(['message' => 'Vous n\'êtes pas affecté à cette annonce.'], 403);
-        }
-
-        // Règles de transition : on ne peut avancer que logiquement
-        if ($annonce->statut === 'acceptee' && $request->statut === 'en_cours') {
-            $annonce->statut = 'en_cours';
-        } elseif ($annonce->statut === 'en_cours' && $request->statut === 'livree') {
-            $annonce->statut = 'livree';
-        } else {
-            return response()->json(['message' => 'Transition de statut invalide.'], 400);
-        }
-
-        $annonce->save();
-
-        return response()->json(['message' => 'Statut mis à jour.', 'statut' => $annonce->statut]);
+        return response()->json(['message' => 'Annonce acceptée et étape créée.']);
     }
+
+
 
 }

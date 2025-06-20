@@ -128,7 +128,7 @@ class AuthController extends Controller
             'prenom' => $validated['prenom'],
             'email' => $validated['email'] ?? null,
             'identifiant' => $validated['identifiant'] ?? null,
-            'password' => Hash::make($validated['password']),
+            'password' => $validated['password'],
             'role' => $validated['role'],
             'pays' => $validated['pays'] ?? null,
             'telephone' => $validated['telephone'] ?? null,

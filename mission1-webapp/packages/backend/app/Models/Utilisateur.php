@@ -34,11 +34,13 @@ class Utilisateur extends Authenticatable implements MustVerifyEmail
         'two_factor_secret',
     ];
 
-    // Mutator pour hasher automatiquement le mot de passe, pas besoin ici
-    /*public function setPasswordAttribute($value)
+    // Mutator pour hasher automatiquement le mot de passe
+    public function setPasswordAttribute($value)
     {
-        $this->attributes['password'] = bcrypt($value);
-    // }*/
+        if (!empty($value)) {
+            $this->attributes['password'] = bcrypt($value);
+        }
+    }
 
     // Annonces créées par le client (type livraison_client, service ou produit_livre)
     public function annoncesClient()

@@ -5,24 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class EtapeLivraison extends Model
+class TrajetLivreur extends Model
 {
     use HasFactory;
 
-    protected $table = 'etapes_livraison';
-
+    protected $table = 'trajets_livreurs';
+    
     protected $fillable = [
-        'annonce_id',
         'livreur_id',
-        'lieu_depart',
-        'lieu_arrivee',
-        'statut',
+        'ville_depart',
+        'ville_arrivee',
+        'disponible_du',
+        'disponible_au',
     ];
-
-    public function annonce()
-    {
-        return $this->belongsTo(Annonce::class);
-    }
 
     public function livreur()
     {

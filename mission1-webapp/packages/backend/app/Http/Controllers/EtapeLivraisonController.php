@@ -3,59 +3,86 @@
 namespace App\Http\Controllers;
 
 use App\Models\EtapeLivraison;
-use App\Models\Colis;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class EtapeLivraisonController extends Controller
 {
-    /**
-     * Lister les étapes d’un colis.
-     */
-    public function index($colis_id)
+
+    // Liste des étapes pour un livreur
+    public function mesEtapes()
     {
-        $etapes = EtapeLivraison::where('colis_id', $colis_id)
-                    ->orderBy('date_etape')
-                    ->get();
+        $user = Auth::user();
+
+        if ($user->role !== 'livreur') {
+            return response()->json(['message' => 'Accès réservé aux livreurs.'], 403);
+        }
+
+        $etapes = EtapeLivraison::where('livreur_id', $user->id)
+            ->with('annonce')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json($etapes);
     }
 
-    /**
-     * Créer une nouvelle étape de livraison.
-     */
-    public function store(Request $request)
+    // Modifier le statut d'une étape
+    public function changerStatut(Request $request, $id)
     {
-        $request->validate([
-            'colis_id' => 'required|exists:colis,id',
-            'statut' => 'required|in:préparation,déposé,en transit,en attente,livré,échoué',
-            'commentaire' => 'nullable|string',
-        ]);
+        $user = Auth::user();
 
-        $etape = EtapeLivraison::create([
-            'colis_id' => $request->colis_id,
-            'statut' => $request->statut,
-            'commentaire' => $request->commentaire,
-            'date_etape' => now(),
-        ]);
+        $etape = EtapeLivraison::findOrFail($id);
 
-        return response()->json([
-            'message' => 'Étape ajoutée avec succès.',
-            'etape' => $etape
-        ], 201);
-    }
-
-    /**
-     * Afficher une étape spécifique (optionnel).
-     */
-    public function show($id)
-    {
-        $etape = EtapeLivraison::find($id);
-
-        if (! $etape) {
-            return response()->json(['message' => 'Étape introuvable.'], 404);
+        if ($etape->livreur_id !== $user->id) {
+            return response()->json(['message' => 'Non autorisé.'], 403);
         }
 
-        return response()->json($etape);
+        $request->validate([
+            'statut' => 'required|in:en_attente,en_cours,terminee',
+        ]);
+
+        // Règle métier simple : éviter de reculer dans le statut
+        $statuts = ['en_attente' => 0, 'en_cours' => 1, 'terminee' => 2];
+        if ($statuts[$request->statut] < $statuts[$etape->statut]) {
+            return response()->json(['message' => 'Transition invalide.'], 400);
+        }
+
+        $etape->statut = $request->statut;
+        $etape->save();
+
+        return response()->json(['message' => 'Statut mis à jour.', 'etape' => $etape]);
     }
+
+    public function cloturerEtape($id)
+    {
+        $user = Auth::user();
+        $etape = EtapeLivraison::with('annonce')->findOrFail($id);
+
+        if ($etape->livreur_id !== $user->id) {
+            return response()->json(['message' => 'Non autorisé.'], 403);
+        }
+
+        if ($etape->statut !== 'en_cours') {
+            return response()->json(['message' => 'Étape non active.'], 400);
+        }
+
+        $etape->statut = 'terminee';
+        $etape->save();
+
+        // Vérifier si l'étape termine la livraison globale
+        $annonce = $etape->annonce;
+
+        if (strcasecmp($etape->lieu_arrivee, $annonce->lieu_arrivee) === 0) {
+            // Livraison complète
+            return response()->json(['message' => 'Livraison terminée, destination finale atteinte.']);
+        }
+
+        // Sinon : la livraison continue depuis ce point
+        return response()->json([
+            'message' => 'Étape terminée. Livraison partielle enregistrée.',
+            'annonce_reouverte' => true,
+            'point_actuel' => $etape->lieu_arrivee,
+        ]);
+    }
+
 }

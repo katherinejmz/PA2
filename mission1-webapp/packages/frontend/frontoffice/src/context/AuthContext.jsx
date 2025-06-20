@@ -26,8 +26,15 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("user");
   };
 
+  // 🔄 mise à jour du user après modification de profil
+  const updateUser = (data) => {
+    const updated = { ...user, ...data };
+    setUser(updated);
+    localStorage.setItem("user", JSON.stringify(updated));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

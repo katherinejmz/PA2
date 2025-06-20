@@ -29,6 +29,7 @@ use App\Http\Controllers\StatAdminController;
 use App\Http\Controllers\Api\EmailVerificationController;
 use Laravel\Fortify\Http\Controllers\EmailVerificationNotificationController;
 use App\Http\Controllers\TwoFactorController;
+use App\Http\Controllers\TrajetLivreurController;
 
 // Authentification
 Route::post('/login', [AuthController::class, 'login']);
@@ -87,14 +88,15 @@ Route::middleware(['auth:sanctum', 'role:admin,client'])->group(function () {
 
 // LIVREUR uniquement
 Route::middleware(['auth:sanctum', 'role:admin,livreur'])->group(function () {
-    Route::post('/etapes', [EtapeLivraisonController::class, 'store']);
     Route::post('/colis', [ColisController::class, 'store']);
     Route::patch('/colis/{id}/box', [ColisController::class, 'affecterBox']);
     Route::get('/livreurs/{id}', [LivreurController::class, 'show']);
     Route::patch('/livreurs/{id}', [LivreurController::class, 'update']);
     Route::get('/annonces-disponibles', [AnnonceController::class, 'annoncesDisponibles']);
-    Route::get('/mes-livraisons', [AnnonceController::class, 'mesLivraisons']);
-    Route::patch('/annonces/{id}/changer-statut', [AnnonceController::class, 'changerStatut']);
+    Route::post('/annonces/{id}/accepter', [AnnonceController::class, 'accepterAnnonce']);
+    Route::get('/mes-trajets', [TrajetLivreurController::class, 'index']);
+    Route::post('/mes-trajets', [TrajetLivreurController::class, 'store']);
+    Route::delete('/mes-trajets/{id}', [TrajetLivreurController::class, 'destroy']);
 });
 
 // COMMERCANT uniquement
@@ -127,7 +129,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/annonces', [AnnonceController::class, 'store']);
     Route::patch('/annonces/{id}', [AnnonceController::class, 'update']);
     Route::delete('/annonces/{id}', [AnnonceController::class, 'destroy']);
-    Route::post('/annonces/{id}/accepter', [AnnonceController::class, 'accepter']);
     
     // Commandes
     Route::get('/commandes', [CommandeController::class, 'index']);
@@ -173,8 +174,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/communications/{id}/lire', [CommunicationController::class, 'markAsRead']);
 
     // Étapes de livraison
-    Route::get('/etapes/{colis_id}', [EtapeLivraisonController::class, 'index']);
-    Route::get('/etapes/detail/{id}', [EtapeLivraisonController::class, 'show']);
+    Route::get('/mes-etapes', [EtapeLivraisonController::class, 'mesEtapes']);
+    Route::patch('/etapes/{id}/statut', [EtapeLivraisonController::class, 'changerStatut']);
+    Route::patch('/etapes/{id}/cloturer', [EtapeLivraisonController::class, 'cloturerEtape']);
+
+    // Livreur
+    Route::get('/livreurs', [UtilisateurController::class, 'indexLivreurs']);
 
     // Portefeuille
     Route::get('/portefeuille', [PortefeuilleController::class, 'show']);

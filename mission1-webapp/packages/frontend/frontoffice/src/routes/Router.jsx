@@ -9,6 +9,7 @@ import RegisterPrestataire from "../pages/RegisterPrestataire";
 import Profil from "../pages/Profil";
 import EditProfil from "../pages/EditProfil";
 import ChangePassword from "../pages/ChangePassword";
+import ResetPassword from "../pages/ResetPassword";
 import MainLayout from "../layouts/MainLayout";
 import PrivateRoute from "./PrivateRoute";
 import Annonces from "../pages/Annonces";
@@ -27,6 +28,8 @@ import Factures from "../pages/Factures";
 import PublierPrestation from "../pages/PublierPrestation";
 import Notifications from "../pages/Notifications";
 import CataloguePrestations from "../pages/CataloguePrestations";
+import MesTrajets from "../pages/MesTrajets";
+import MesEtapes from "../pages/MesEtapes";
 
 
 export default function AppRouter() {
@@ -118,6 +121,37 @@ export default function AppRouter() {
             element={
               <PrivateRoute>
                 <ChangePassword />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/profil/resetpassword"
+            element={
+              <PrivateRoute>
+                <ResetPassword />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/mes-trajets"
+            element={
+              <PrivateRoute>
+                <RoleRoute role="livreur">
+                  <MesTrajets />
+                </RoleRoute>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/mes-etapes"
+            element={
+              <PrivateRoute>
+                <RoleRoute role="livreur">
+                  <MesEtapes />
+                </RoleRoute>
               </PrivateRoute>
             }
           />
@@ -215,6 +249,7 @@ export default function AppRouter() {
               </PrivateRoute>
             }
           />
+
 
 
         </Routes>

@@ -18,6 +18,14 @@ class UtilisateurController extends Controller
     }
 
     /**
+     * Lister tous les livreurs.
+     */
+    public function indexLivreurs()
+    {
+        return Utilisateur::where('role', 'livreur')->get();
+    }
+
+    /**
      * Créer un nouvel utilisateur
      */
     public function store(Request $request)
@@ -75,6 +83,7 @@ class UtilisateurController extends Controller
 
         return response()->json($utilisateur);
     }
+    
 
     /**
      * Modifier un utilisateur.
@@ -127,8 +136,13 @@ class UtilisateurController extends Controller
             $utilisateur->password = $request->password;
         }
 
+        if ($request->filled('password') && !$request->filled('password_confirmation')) {
+            return response()->json(['message' => 'La confirmation du mot de passe est requise.'], 422);
+        }
+
         $utilisateur->fill(collect($validated)->except(['password'])->toArray());
         $utilisateur->save();
+
 
         return response()->json([
             'message' => 'Utilisateur mis à jour avec succès.',

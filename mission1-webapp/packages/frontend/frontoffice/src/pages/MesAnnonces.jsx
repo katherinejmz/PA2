@@ -67,27 +67,28 @@ export default function MesAnnonces() {
               )}
 
               <p className="mt-2 text-blue-700 font-medium">
-                Statut : {afficherStatut(a.statut)}
+                Statut global : {afficherStatut(a.statut)}
               </p>
 
-              {a.livreurs?.length > 0 ? (
-                <div className="mt-2 text-green-600 font-medium">
-                  ✅ Livreurs assignés :
-                  <ul className="list-disc ml-6">
-                    {a.livreurs.map((l) => (
-                      <li key={l.id}>
-                        {l.prenom} {l.nom} ({l.telephone})
-                        {l.pivot?.accepte_le && (
-                          <span className="text-gray-500 text-sm ml-2">
-                            — accepté le {new Date(l.pivot.accepte_le).toLocaleString()}
-                          </span>
-                        )}
+              {/* Affichage des étapes */}
+              {a.etapes_livraison?.length > 0 ? (
+                <div className="mt-4">
+                  <p className="font-semibold">📦 Étapes de livraison :</p>
+                  <ul className="list-disc ml-6 mt-2">
+                    {a.etapes_livraison.map((etape) => (
+                      <li key={etape.id}>
+                        <strong>{etape.lieu_depart} → {etape.lieu_arrivee}</strong> —
+                        <span className="ml-1">{etape.statut}</span>
+                        <br />
+                        <span className="text-sm text-gray-600">
+                          Livreur : {etape.livreur?.prenom} {etape.livreur?.nom} ({etape.livreur?.telephone})
+                        </span>
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : (
-                <p className="mt-2 text-yellow-600">⏳ En attente d’un livreur</p>
+                <p className="mt-2 text-yellow-600">⏳ Aucune étape encore définie</p>
               )}
 
               <button
