@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function MesEtapes() {
   const { token } = useAuth();
   const [etapes, setEtapes] = useState([]);
+  const [toutesEtapes, setToutesEtapes] = useState([]);
 
   const fetchEtapes = async () => {
     try {
       const res = await api.get("/mes-etapes", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setEtapes(res.data);
+
+      const toutes = res.data;
+      const livreurEtapes = toutes.filter((e) => e.est_client === false);
+
+      setToutesEtapes(toutes);
+      setEtapes(livreurEtapes);
     } catch (err) {
       console.error("Erreur chargement etapes:", err);
     }
@@ -21,20 +28,6 @@ export default function MesEtapes() {
     fetchEtapes();
   }, [token]);
 
-  const cloturerEtape = async (id) => {
-    if (!window.confirm("Confirmer la fin de cette livraison ?")) return;
-    try {
-      await api.patch(`/etapes/${id}/cloturer`, null, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert("Étape marquée comme terminée.");
-      fetchEtapes();
-    } catch (err) {
-      console.error("Erreur cloture:", err);
-      alert("Impossible de terminer cette étape.");
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto mt-10 p-6 bg-white shadow rounded">
       <h2 className="text-2xl font-bold mb-6">Mes étapes de livraison</h2>
@@ -43,26 +36,60 @@ export default function MesEtapes() {
         <p>Aucune étape en cours.</p>
       ) : (
         <ul className="space-y-6">
-          {etapes.map((e) => (
-            <li key={e.id} className="border p-4 rounded shadow">
-              <h3 className="text-lg font-semibold">
-                {e.lieu_depart} → {e.lieu_arrivee}
-              </h3>
-              <p className="text-sm text-gray-600">Statut : {e.statut}</p>
-              <p className="text-sm text-gray-600">
-                Annonce : {e.annonce?.titre || "-"}
-              </p>
+          {etapes.map((e) => {
+            const codeDepot = e.codes?.find((c) => c.type === "depot");
+            const codeRetrait = e.codes?.find((c) => c.type === "retrait");
 
-              {e.statut === "en_cours" && (
-                <button
-                  onClick={() => cloturerEtape(e.id)}
-                  className="mt-3 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            let infoMessage = "";
+            let boutonAction = null;
+
+            // ✅ Vérifie si le client a déjà déposé
+            const clientHasDeposited = toutesEtapes.some(
+              (et) =>
+                et.est_client === true &&
+                et.codes?.some((c) => c.type === "depot" && c.utilise)
+            );
+
+            if (!codeRetrait?.utilise && clientHasDeposited) {
+              infoMessage = "🔓 Prêt pour retrait du colis";
+              boutonAction = (
+                <Link
+                  to={`/etapes/${e.id}/validation-code`}
+                  className="inline-block mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
-                  Marquer comme livrée
-                </button>
-              )}
-            </li>
-          ))}
+                  Saisir le code pour retirer
+                </Link>
+              );
+            } else if (!codeRetrait?.utilise && !clientHasDeposited) {
+              infoMessage = "⏳ En attente de dépôt du client";
+            } else if (!codeDepot?.utilise && codeDepot) {
+              infoMessage = "📦 Prêt pour dépôt à l'arrivée";
+              boutonAction = (
+                <Link
+                  to={`/etapes/${e.id}/validation-code`}
+                  className="inline-block mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                  Saisir le code pour déposer
+                </Link>
+              );
+            } else {
+              infoMessage = "✅ Étape complétée";
+            }
+
+            return (
+              <li key={e.id} className="border p-4 rounded shadow">
+                <h3 className="text-lg font-semibold">
+                  {e.lieu_depart} → {e.lieu_arrivee}
+                </h3>
+                <p className="text-sm text-gray-600">Statut : {e.statut}</p>
+                <p className="text-sm text-gray-600">
+                  Annonce : {e.annonce?.titre || "-"}
+                </p>
+                <p className="mt-2 font-medium text-blue-700">{infoMessage}</p>
+                {boutonAction}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

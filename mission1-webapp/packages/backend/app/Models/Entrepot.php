@@ -13,8 +13,9 @@ class Entrepot extends Model
         'code_postal',
     ];
 
-    public function box()
+    public function boxes()
     {
         return $this->hasMany(Box::class, 'entrepot_id');
     }
+
 }

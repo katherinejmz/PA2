@@ -5,16 +5,29 @@ import { useAuth } from "../context/AuthContext";
 export default function MesTrajets() {
   const { token } = useAuth();
   const [trajets, setTrajets] = useState([]);
+  const [entrepots, setEntrepots] = useState([]);
   const [form, setForm] = useState({
-    ville_depart: "",
-    ville_arrivee: "",
+    entrepot_depart_id: "",
+    entrepot_arrivee_id: "",
     disponible_du: "",
     disponible_au: "",
   });
 
   useEffect(() => {
+    fetchEntrepots();
     fetchTrajets();
   }, []);
+
+  const fetchEntrepots = async () => {
+    try {
+      const res = await api.get("/entrepots", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEntrepots(res.data);
+    } catch (err) {
+      console.error("Erreur chargement entrepôts:", err);
+    }
+  };
 
   const fetchTrajets = async () => {
     try {
@@ -37,7 +50,12 @@ export default function MesTrajets() {
       await api.post("/mes-trajets", form, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setForm({ ville_depart: "", ville_arrivee: "", disponible_du: "", disponible_au: "" });
+      setForm({
+        entrepot_depart_id: "",
+        entrepot_arrivee_id: "",
+        disponible_du: "",
+        disponible_au: "",
+      });
       fetchTrajets();
     } catch (err) {
       console.error("Erreur ajout trajet:", err);
@@ -62,24 +80,32 @@ export default function MesTrajets() {
       <h2 className="text-2xl font-bold mb-4">Mes trajets disponibles</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-        <input
-          type="text"
-          name="ville_depart"
-          placeholder="Ville de départ"
-          value={form.ville_depart}
+        <select
+          name="entrepot_depart_id"
+          value={form.entrepot_depart_id}
           onChange={handleChange}
-          className="w-full p-2 border rounded"
           required
-        />
-        <input
-          type="text"
-          name="ville_arrivee"
-          placeholder="Ville d'arrivée"
-          value={form.ville_arrivee}
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Ville de départ</option>
+          {entrepots.map((e) => (
+            <option key={e.id} value={e.id}>{e.ville}</option>
+          ))}
+        </select>
+
+        <select
+          name="entrepot_arrivee_id"
+          value={form.entrepot_arrivee_id}
           onChange={handleChange}
-          className="w-full p-2 border rounded"
           required
-        />
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Ville d’arrivée</option>
+          {entrepots.map((e) => (
+            <option key={e.id} value={e.id}>{e.ville}</option>
+          ))}
+        </select>
+
         <input
           type="date"
           name="disponible_du"
@@ -103,7 +129,7 @@ export default function MesTrajets() {
         {trajets.map((t) => (
           <li key={t.id} className="border p-4 rounded shadow-sm">
             <p className="font-semibold">
-              {t.ville_depart} → {t.ville_arrivee}
+              {t.entrepot_depart?.ville} → {t.entrepot_arrivee?.ville}
             </p>
             <p className="text-sm text-gray-600">
               Du {t.disponible_du || "-"} au {t.disponible_au || "-"}

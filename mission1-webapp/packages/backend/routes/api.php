@@ -175,8 +175,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Étapes de livraison
     Route::get('/mes-etapes', [EtapeLivraisonController::class, 'mesEtapes']);
+    Route::get('/etapes/{id}', [EtapeLivraisonController::class, 'show']);
     Route::patch('/etapes/{id}/statut', [EtapeLivraisonController::class, 'changerStatut']);
     Route::patch('/etapes/{id}/cloturer', [EtapeLivraisonController::class, 'cloturerEtape']);
+    Route::get('/etapes/{id}/suivante', [EtapeLivraisonController::class, 'etapeSuivante']);
+
+    // Codes validation box
+    Route::post('/valider-code-box', [EtapeLivraisonController::class, 'validerCode']);
+    Route::get('/etapes/{id}/codes', [EtapeLivraisonController::class, 'codes']);
 
     // Livreur
     Route::get('/livreurs', [UtilisateurController::class, 'indexLivreurs']);

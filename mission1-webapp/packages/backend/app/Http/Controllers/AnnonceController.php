@@ -7,20 +7,20 @@ use App\Models\Annonce;
 use App\Models\TrajetLivreur;
 use App\Models\EtapeLivraison;
 use App\Models\Entrepot;
+use App\Models\CodeBox;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 
 class AnnonceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Annonce::with(['client', 'commercant', 'prestataire', 'livreurs']);
+        $query = Annonce::with(['client', 'commercant', 'entrepotDepart', 'entrepotArrivee']);
 
-        // Filtrer par type
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
-        // Recherche mot-clé (titre ou description)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -29,7 +29,6 @@ class AnnonceController extends Controller
             });
         }
 
-        // Tri par prix proposé
         if ($request->filled('sort') && in_array($request->sort, ['asc', 'desc'])) {
             $query->orderBy('prix_propose', $request->sort);
         } else {
@@ -41,7 +40,13 @@ class AnnonceController extends Controller
 
     public function show($id)
     {
-        $annonce = Annonce::with(['client', 'commercant', 'prestataire', 'livreurs'])->find($id);
+        $annonce = Annonce::with([
+            'client',
+            'commercant',
+            'entrepotDepart',
+            'entrepotArrivee',
+            'etapesLivraison.codes'
+        ])->find($id);
 
         if (! $annonce) {
             return response()->json(['message' => 'Annonce introuvable.'], 404);
@@ -55,28 +60,21 @@ class AnnonceController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'type' => 'required|in:livraison_client,produit_livre,service',
+            'type' => 'required|in:livraison_client,produit_livre',
             'titre' => 'required|string|max:255',
             'description' => 'required|string',
             'prix_propose' => 'required|numeric|min:0',
             'photo' => 'nullable|url',
-            'lieu_depart' => 'required_if:type,livraison_client,produit_livre|string|max:255',
-            'lieu_arrivee' => 'required_if:type,livraison_client,produit_livre|string|max:255',
-        ], [
-            'lieu_depart.required_if' => 'Le lieu de départ est requis pour les livraisons.',
-            'lieu_arrivee.required_if' => 'Le lieu d\'arrivée est requis pour les livraisons.',
-            'photo.url' => 'L\'URL de la photo est invalide.',
+            'entrepot_depart_id' => 'required|exists:entrepots,id',
+            'entrepot_arrivee_id' => 'required|exists:entrepots,id',
         ]);
 
         $annonce = new Annonce($validated);
 
-        // Association selon le rôle de l'utilisateur connecté
         if ($user->role === 'client') {
             $annonce->id_client = $user->id;
         } elseif ($user->role === 'commercant') {
             $annonce->id_commercant = $user->id;
-        } elseif ($user->role === 'prestataire') {
-            $annonce->id_prestataire = $user->id;
         }
 
         $annonce->save();
@@ -100,8 +98,8 @@ class AnnonceController extends Controller
             'description' => 'sometimes|string',
             'prix_propose' => 'sometimes|numeric|min:0',
             'photo' => 'nullable|string',
-            'lieu_depart' => 'nullable|string',
-            'lieu_arrivee' => 'nullable|string',
+            'entrepot_depart_id' => 'sometimes|exists:entrepots,id',
+            'entrepot_arrivee_id' => 'sometimes|exists:entrepots,id',
         ]);
 
         $annonce->update($validated);
@@ -119,11 +117,9 @@ class AnnonceController extends Controller
 
         $user = auth()->user();
 
-        // Vérification d'autorisation (propriétaire)
         $estAuteur =
             ($user->role === 'client' && $annonce->id_client === $user->id) ||
-            ($user->role === 'commercant' && $annonce->id_commercant === $user->id) ||
-            ($user->role === 'prestataire' && $annonce->id_prestataire === $user->id);
+            ($user->role === 'commercant' && $annonce->id_commercant === $user->id);
 
         if (! $estAuteur && $user->role !== 'admin') {
             return response()->json(['message' => 'Action non autorisée.'], 403);
@@ -134,20 +130,28 @@ class AnnonceController extends Controller
         return response()->json(['message' => 'Annonce supprimée avec succès.']);
     }
 
-
-
     public function mesAnnonces()
     {
         $user = Auth::user();
 
-        if ($user->role !== 'client') {
+        if (!in_array($user->role, ['client', 'commercant'])) {
             return response()->json(['message' => 'Non autorisé.'], 403);
         }
 
-        $annonces = Annonce::where('id_client', $user->id)
-            ->with(['etapesLivraison.livreur'])
-            ->latest()
-            ->get();
+        $annonces = Annonce::with([
+            'etapesLivraison.livreur',
+            'entrepotDepart',
+            'entrepotArrivee'
+        ])
+        ->where(function ($q) use ($user) {
+            if ($user->role === 'client') {
+                $q->where('id_client', $user->id);
+            } elseif ($user->role === 'commercant') {
+                $q->where('id_commercant', $user->id);
+            }
+        })
+        ->latest()
+        ->get();
 
         return response()->json($annonces);
     }
@@ -161,35 +165,39 @@ class AnnonceController extends Controller
             return response()->json(['message' => 'Accès refusé'], 403);
         }
 
-        $trajets = TrajetLivreur::where('livreur_id', $user->id)->get();
+        $trajets = TrajetLivreur::with('entrepotDepart')->where('livreur_id', $user->id)->get();
 
         if ($trajets->isEmpty()) {
             return response()->json(['annonces_disponibles' => []]);
         }
 
-        $annonces = Annonce::with(['etapesLivraison'])
+        $annonces = Annonce::with(['etapesLivraison', 'entrepotDepart', 'entrepotArrivee'])
             ->whereIn('type', ['livraison_client', 'produit_livre'])
             ->get();
 
         $disponibles = [];
 
         foreach ($annonces as $annonce) {
-            $depart_actuel = $annonce->lieu_depart;
+            $etapes = $annonce->etapesLivraison;
 
-            $etapes = $annonce->etapesLivraison()->get();
+            // ⚠️ S'il y a déjà des étapes, il ne faut AUCUNE étape livreur en cours
+            if ($etapes->count() > 0) {
+                $enCours = $etapes->first(fn($e) => $e->statut !== 'terminee' && $e->est_client === false);
+                if ($enCours) continue;
+            }
 
-            $lastStep = $etapes->filter(function ($etape) {
-                return $etape->statut === 'terminee';
-            })->last();
-
+            // Déterminer la ville de départ actuelle
+            $depart_actuel = $annonce->entrepotDepart?->ville ?? '';
+            $lastStep = $etapes->where('statut', 'terminee')->last();
             if ($lastStep) {
                 $depart_actuel = $lastStep->lieu_arrivee;
             }
 
-            // Vérifie s’il existe au moins un trajet compatible
-            $compatible = $trajets->first(function ($trajet) use ($depart_actuel) {
-                return strcasecmp($trajet->ville_depart, $depart_actuel) === 0;
-            });
+            // Vérifier compatibilité avec un trajet du livreur
+            $compatible = $trajets->first(fn($trajet) =>
+                $trajet->entrepotDepart &&
+                strcasecmp($trajet->entrepotDepart->ville, $depart_actuel) === 0
+            );
 
             if ($compatible) {
                 $disponibles[] = $annonce;
@@ -211,59 +219,121 @@ class AnnonceController extends Controller
             return response()->json(['message' => 'Accès refusé'], 403);
         }
 
-        $annonce = Annonce::with('etapesLivraison')->findOrFail($id);
-        $trajets = TrajetLivreur::where('livreur_id', $user->id)->get();
+        $annonce = Annonce::with(['etapesLivraison', 'entrepotDepart', 'entrepotArrivee'])->findOrFail($id);
+
+        $enCours = $annonce->etapesLivraison()->where('statut', '!=', 'terminee')->exists();
+
+        if ($enCours) {
+            return response()->json(['message' => 'Cette annonce est déjà en cours de livraison.'], 400);
+        }
+
+        $trajets = TrajetLivreur::with(['entrepotDepart', 'entrepotArrivee'])
+            ->where('livreur_id', $user->id)
+            ->get();
 
         if ($trajets->isEmpty()) {
             return response()->json(['message' => 'Aucun trajet disponible.'], 400);
         }
 
-        // Point de départ actuel de l'annonce
-        $depart_actuel = $annonce->lieu_depart;
-        $etapes = $annonce->etapesLivraison()->get();
-
-        $lastStep = $etapes->filter(function ($etape) {
-            return $etape->statut === 'terminee';
-        })->last();
-
+        // Déterminer le point de départ
+        $depart_actuel = $annonce->entrepotDepart?->ville ?? '';
+        $lastStep = $annonce->etapesLivraison()
+            ->where('statut', 'terminee')
+            ->where('est_client', false)
+            ->orderByDesc('created_at')
+            ->first();
         if ($lastStep) {
             $depart_actuel = $lastStep->lieu_arrivee;
         }
-
-        // Trouver un trajet dont la ville_depart correspond à ce point
-        $trajetCompatible = $trajets->first(function ($trajet) use ($depart_actuel) {
-            return strcasecmp($trajet->ville_depart, $depart_actuel) === 0;
-        });
-
-        if (! $trajetCompatible) {
-            return response()->json(['message' => 'Aucun trajet compatible avec l annonce.'], 400);
+        
+        // Vérifier si un trajet correspond
+        $trajetCompatible = $trajets->first(fn($trajet) =>
+            $trajet->entrepotDepart && strcasecmp($trajet->entrepotDepart->ville, $depart_actuel) === 0
+        );
+        
+        if (is_null($trajetCompatible)) {
+            logger()->error("❌ Aucun trajet trouvé pour départ_actuel = $depart_actuel");
+            logger()->info("📦 Trajets disponibles : " . json_encode($trajets));
         }
 
-        $destination = $trajetCompatible->ville_arrivee;
-
-        // Si le trajet ne va pas jusqu'au bout de l'annonce, chercher un entrepôt proche
-        if (strcasecmp($destination, $annonce->lieu_arrivee) !== 0) {
-            $entrepot = Entrepot::all()->sortBy(function ($e) use ($destination) {
-                return levenshtein(strtolower($e->ville), strtolower($destination));
-            })->first();
-
-            if ($entrepot) {
-                $destination = $entrepot->ville;
-            }
+        if (! $trajetCompatible || ! $trajetCompatible->entrepotArrivee) {
+            return response()->json(['message' => 'Aucun trajet compatible avec l’annonce.'], 400);
         }
 
-        // Créer l'étape
-        EtapeLivraison::create([
+        $destination = $trajetCompatible->entrepotArrivee->ville;
+        $villeFinale = $annonce->entrepotArrivee?->ville;
+
+        $isDerniereEtape = strcasecmp($destination, $villeFinale) === 0;
+
+        $etapesCreees = [];
+
+        // 📦 Étape pour le client (départ de l’annonce)
+        if ($depart_actuel === $annonce->entrepotDepart->ville) {
+            $etapeClient = EtapeLivraison::create([
+                'annonce_id' => $annonce->id,
+                'livreur_id' => $user->id,
+                'lieu_depart' => $depart_actuel,
+                'lieu_arrivee' => $depart_actuel,
+                'statut' => 'en_cours',
+                'est_client' => true,
+            ]);
+
+            $entrepot = Entrepot::where('ville', $depart_actuel)->first();
+            $box = $entrepot?->boxes()->where('est_occupe', false)->first();
+            if (!$box) return response()->json(['message' => 'Aucune box disponible pour le client.'], 400);
+
+            CodeBox::create([
+                'box_id' => $box->id,
+                'etape_livraison_id' => $etapeClient->id,
+                'type' => 'depot',
+                'code_temporaire' => Str::upper(Str::random(6)),
+            ]);
+
+            $box->est_occupe = true;
+            $box->save();
+
+            $etapesCreees[] = $etapeClient;
+        }
+
+        // 🚚 Étape pour le livreur (retrait + dépôt OU retrait seul si destination finale)
+        $etapeLivreur = EtapeLivraison::create([
             'annonce_id' => $annonce->id,
             'livreur_id' => $user->id,
             'lieu_depart' => $depart_actuel,
             'lieu_arrivee' => $destination,
             'statut' => 'en_cours',
+            'est_client' => false,
         ]);
 
-        return response()->json(['message' => 'Annonce acceptée et étape créée.']);
+        $entrepot = Entrepot::where('ville', $depart_actuel)->first();
+        $box = $entrepot?->boxes()->where('est_occupe', false)->first();
+        if (!$box) return response()->json(['message' => 'Aucune box disponible pour le livreur.'], 400);
+
+        // retrait obligatoire
+        CodeBox::create([
+            'box_id' => $box->id,
+            'etape_livraison_id' => $etapeLivreur->id,
+            'type' => 'retrait',
+            'code_temporaire' => Str::upper(Str::random(6)),
+        ]);
+       
+        CodeBox::create([
+            'box_id' => $box->id,
+            'etape_livraison_id' => $etapeLivreur->id,
+            'type' => 'depot',
+            'code_temporaire' => Str::upper(Str::random(6)),
+        ]);
+        
+
+        $box->est_occupe = true;
+        $box->save();
+
+        $etapesCreees[] = $etapeLivreur;
+
+        return response()->json([
+            'message' => 'Annonce acceptée, étapes créées.',
+            'etapes' => $etapesCreees,
+        ]);
     }
-
-
 
 }

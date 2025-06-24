@@ -30,7 +30,8 @@ import Notifications from "../pages/Notifications";
 import CataloguePrestations from "../pages/CataloguePrestations";
 import MesTrajets from "../pages/MesTrajets";
 import MesEtapes from "../pages/MesEtapes";
-
+import ValidationCodeBox from "../pages/ValidationCodeBox";
+import SuiviAnnonce from "../pages/SuiviAnnonce";
 
 export default function AppRouter() {
   return (
@@ -250,7 +251,23 @@ export default function AppRouter() {
             }
           />
 
+          <Route 
+            path="/etapes/:etapeId/validation-code" 
+            element={
+              <PrivateRoute>
+                <ValidationCodeBox />
+              </PrivateRoute>
+            } 
+          />
 
+          <Route 
+            path="/annonces/:annonceId/suivi"
+            element={
+              <PrivateRoute>
+                <SuiviAnnonce />
+              </PrivateRoute>
+            } 
+          />
 
         </Routes>
       </MainLayout>

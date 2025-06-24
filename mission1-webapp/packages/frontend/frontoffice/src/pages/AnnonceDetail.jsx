@@ -47,22 +47,20 @@ export default function AnnonceDetail() {
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+
       const commandeId = res.data.commande.id;
-  
+
       if (annonce.type === "produit_livre") {
         navigate(`/adresse-livraison/${commandeId}`);
       } else if (annonce.type === "service") {
         navigate(`/details-service/${commandeId}`);
       }
-  
+
     } catch (error) {
       alert("Erreur lors de la commande.");
       console.error(error);
     }
   };
-  
-  
 
   if (!annonce) {
     return <p className="text-center mt-10">Chargement...</p>;
@@ -77,24 +75,28 @@ export default function AnnonceDetail() {
           className="w-full h-64 object-cover rounded mb-4"
         />
       )}
-  
+
       <h1 className="text-2xl font-bold mb-2">{annonce.titre}</h1>
       <p className="text-gray-600 mb-4">{annonce.description}</p>
       <ul className="mb-4 space-y-1 text-sm text-gray-700">
         <li><strong>Type :</strong> {annonce.type}</li>
         <li><strong>Prix proposé :</strong> {annonce.prix_propose} €</li>
-        <li><strong>Lieu de départ :</strong> {annonce.lieu_depart}</li>
-        <li><strong>Lieu d’arrivée :</strong> {annonce.lieu_arrivee}</li>
+        {(annonce.type === "livraison_client" || annonce.type === "produit_livre") && (
+          <>
+            <li><strong>Départ :</strong> {annonce.entrepot_depart?.ville || "Non défini"}</li>
+            <li><strong>Arrivée :</strong> {annonce.entrepot_arrivee?.ville || "Non défini"}</li>
+          </>
+        )}
         <li><strong>Publié le :</strong> {new Date(annonce.created_at).toLocaleDateString()}</li>
       </ul>
-  
+
       {user?.role === "livreur" &&
         ["livraison_client", "produit_livre"].includes(annonce.type) && (
           <button onClick={accepterAnnonce} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
             Accepter cette annonce
           </button>
       )}
-  
+
       {user?.role === "client" &&
         ["produit_livre", "service"].includes(annonce.type) && (
           <button onClick={commanderAnnonce} className="ml-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
@@ -103,5 +105,4 @@ export default function AnnonceDetail() {
       )}
     </div>
   );
-  
 }

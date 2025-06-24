@@ -17,6 +17,11 @@ class EtapeLivraison extends Model
         'lieu_depart',
         'lieu_arrivee',
         'statut',
+        'est_client',
+    ];
+
+    protected $casts = [
+        'est_client' => 'boolean',
     ];
 
     public function annonce()
@@ -27,5 +32,10 @@ class EtapeLivraison extends Model
     public function livreur()
     {
         return $this->belongsTo(Utilisateur::class, 'livreur_id');
+    }
+
+    public function codes()
+    {
+        return $this->hasMany(CodeBox::class, 'etape_livraison_id');
     }
 }

@@ -12,7 +12,10 @@ class TrajetLivreurController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $trajets = TrajetLivreur::where('livreur_id', $user->id)->get();
+        $trajets = TrajetLivreur::where('livreur_id', $user->id)
+            ->with(['entrepotDepart', 'entrepotArrivee'])
+            ->get();
+
         return response()->json($trajets);
     }
 
@@ -22,13 +25,17 @@ class TrajetLivreurController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'ville_depart' => 'required|string|max:255',
-            'ville_arrivee' => 'required|string|max:255',
+            'entrepot_depart_id' => 'required|exists:entrepots,id',
+            'entrepot_arrivee_id' => 'required|exists:entrepots,id|different:entrepot_depart_id',
             'disponible_du' => 'nullable|date',
             'disponible_au' => 'nullable|date|after_or_equal:disponible_du',
         ]);
 
-        $trajet = TrajetLivreur::create(array_merge($validated, ['livreur_id' => $user->id]));
+        $trajet = TrajetLivreur::create([
+            'livreur_id' => $user->id,
+            ...$validated
+        ]);
+
         return response()->json(['message' => 'Trajet enregistré.', 'trajet' => $trajet]);
     }
 
@@ -36,10 +43,13 @@ class TrajetLivreurController extends Controller
     public function destroy($id)
     {
         $trajet = TrajetLivreur::findOrFail($id);
+
         if ($trajet->livreur_id !== Auth::id()) {
             return response()->json(['message' => 'Non autorisé.'], 403);
         }
+
         $trajet->delete();
+
         return response()->json(['message' => 'Trajet supprimé.']);
     }
 }

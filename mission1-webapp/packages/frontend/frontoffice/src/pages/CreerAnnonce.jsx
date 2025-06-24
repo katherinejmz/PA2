@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
@@ -11,16 +11,30 @@ export default function CreerAnnonce() {
   let typeAnnonce = null;
   if (user?.role === "client") typeAnnonce = "livraison_client";
   else if (user?.role === "commercant") typeAnnonce = "produit_livre";
-  else if (user?.role === "prestataire") typeAnnonce = "service";
 
+  const [entrepots, setEntrepots] = useState([]);
   const [form, setForm] = useState({
     titre: "",
     description: "",
     prix_propose: "",
-    lieu_depart: "",
-    lieu_arrivee: "",
     photo: "",
+    entrepot_depart_id: "",
+    entrepot_arrivee_id: "",
   });
+
+  useEffect(() => {
+    const fetchEntrepots = async () => {
+      try {
+        const res = await api.get("/entrepots", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setEntrepots(res.data);
+      } catch (err) {
+        console.error("Erreur chargement entrepôts :", err);
+      }
+    };
+    fetchEntrepots();
+  }, [token]);
 
   if (!typeAnnonce) {
     return (
@@ -81,26 +95,41 @@ export default function CreerAnnonce() {
           className="w-full p-2 border rounded"
           required
         />
+
         {(typeAnnonce === "livraison_client" || typeAnnonce === "produit_livre") && (
           <>
-            <input
-              type="text"
-              name="lieu_depart"
-              placeholder="Lieu de départ"
-              value={form.lieu_depart}
+            <select
+              name="entrepot_depart_id"
+              value={form.entrepot_depart_id}
               onChange={handleChange}
               className="w-full p-2 border rounded"
-            />
-            <input
-              type="text"
-              name="lieu_arrivee"
-              placeholder="Lieu d'arrivée"
-              value={form.lieu_arrivee}
+              required
+            >
+              <option value="">Ville de départ</option>
+              {entrepots.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.ville}
+                </option>
+              ))}
+            </select>
+
+            <select
+              name="entrepot_arrivee_id"
+              value={form.entrepot_arrivee_id}
               onChange={handleChange}
               className="w-full p-2 border rounded"
-            />
+              required
+            >
+              <option value="">Ville d'arrivée</option>
+              {entrepots.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.ville}
+                </option>
+              ))}
+            </select>
           </>
         )}
+
         <input
           type="text"
           name="photo"
@@ -109,11 +138,15 @@ export default function CreerAnnonce() {
           onChange={handleChange}
           className="w-full p-2 border rounded"
         />
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          disabled={entrepots.length === 0}
+        >
           Créer l'annonce
         </button>
       </form>
     </div>
   );
 }
-
