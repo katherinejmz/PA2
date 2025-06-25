@@ -83,7 +83,7 @@ Route::middleware(['auth:sanctum', 'role:admin,client'])->group(function () {
     Route::patch('/clients/{id}', [ClientController::class, 'update']);
     Route::post('/evaluations', [EvaluationController::class, 'store']);
     Route::post('/factures', [FactureController::class, 'store']);
-    
+    Route::post('/annonces/{id}/reserver', [AnnonceController::class, 'reserverAnnonce']);
 });
 
 // LIVREUR uniquement

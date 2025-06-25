@@ -58,7 +58,21 @@ export default function MesAnnonces() {
         <ul className="space-y-6">
           {annonces.map((a) => (
             <li key={a.id} className="border p-4 rounded shadow-sm">
-              <h3 className="text-xl font-semibold">{a.titre}</h3>
+              <h3 className="text-xl font-semibold flex items-center gap-2">
+                {a.titre}
+
+                {a.type === "produit_livre" && (
+                  a.id_client ? (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                      Réservée par un client
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                      Non réservée
+                    </span>
+                  )
+                )}
+              </h3>
               <p className="text-gray-600 mb-2">{a.description}</p>
               <p><strong>Prix :</strong> {a.prix_propose} €</p>
               {(a.entrepot_depart || a.entrepot_arrivee) && (
@@ -91,16 +105,19 @@ export default function MesAnnonces() {
                 <p className="mt-2 text-yellow-600">⏳ Aucune étape encore définie</p>
               )}
 
-              <Link to={`/annonces/${a.id}/suivi`} className="text-blue-600 underline">
+              <Link to={`/annonces/${a.id}/suivi`} className="text-blue-600 underline block mt-3">
                 Suivre l'annonce
               </Link>
 
-              <button
-                onClick={() => handleDelete(a.id)}
-                className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-              >
-                Annuler l’annonce
-              </button>
+              {/* ❗️Afficher le bouton seulement si aucune étape n’est liée */}
+              {a.etapes_livraison?.length === 0 && (!a.id_client || a.type !== "produit_livre") && (
+                <button
+                  onClick={() => handleDelete(a.id)}
+                  className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                >
+                  Annuler l’annonce
+                </button>
+              )}
             </li>
           ))}
         </ul>

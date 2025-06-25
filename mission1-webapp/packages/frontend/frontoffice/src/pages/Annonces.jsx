@@ -59,11 +59,20 @@ export default function Annonces() {
               </h3>
               <p>{annonce.description}</p>
               <p className="text-sm text-gray-500">
-                Type : {annonce.type} • Prix : {annonce.prix_propose} € • Départ : {annonce.entrepot_depart?.ville || "❓"} → {annonce.entrepot_arrivee?.ville || "❓"}
+                Prix : {annonce.prix_propose} € • Départ : {annonce.entrepot_depart?.ville || "❓"} → {annonce.entrepot_arrivee?.ville || "❓"}
               </p>
               <p className="text-xs text-gray-400">
                 Publié le : {new Date(annonce.created_at).toLocaleDateString()}
               </p>
+
+              {user?.role === "client" && !annonce.id_client && (
+                <button
+                  onClick={() => navigate(`/annonces/${annonce.id}/reserver`)}
+                  className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Réserver
+                </button>
+              )}
             </li>
           ))}
         </ul>

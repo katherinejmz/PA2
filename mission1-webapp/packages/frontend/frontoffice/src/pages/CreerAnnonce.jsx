@@ -96,38 +96,40 @@ export default function CreerAnnonce() {
           required
         />
 
+        {/* Champ toujours visible : entrepôt de départ */}
         {(typeAnnonce === "livraison_client" || typeAnnonce === "produit_livre") && (
-          <>
-            <select
-              name="entrepot_depart_id"
-              value={form.entrepot_depart_id}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-              required
-            >
-              <option value="">Ville de départ</option>
-              {entrepots.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.ville}
-                </option>
-              ))}
-            </select>
+          <select
+            name="entrepot_depart_id"
+            value={form.entrepot_depart_id}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+            required
+          >
+            <option value="">Ville de départ</option>
+            {entrepots.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.ville}
+              </option>
+            ))}
+          </select>
+        )}
 
-            <select
-              name="entrepot_arrivee_id"
-              value={form.entrepot_arrivee_id}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-              required
-            >
-              <option value="">Ville d'arrivée</option>
-              {entrepots.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.ville}
-                </option>
-              ))}
-            </select>
-          </>
+        {/* Affiché uniquement pour les clients */}
+        {typeAnnonce === "livraison_client" && (
+          <select
+            name="entrepot_arrivee_id"
+            value={form.entrepot_arrivee_id}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+            required
+          >
+            <option value="">Ville d'arrivée</option>
+            {entrepots.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.ville}
+              </option>
+            ))}
+          </select>
         )}
 
         <input

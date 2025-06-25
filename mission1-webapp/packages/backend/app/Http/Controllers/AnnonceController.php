@@ -59,15 +59,22 @@ class AnnonceController extends Controller
     {
         $user = Auth::user();
 
-        $validated = $request->validate([
+        // Déterminer les règles dynamiquement selon le rôle
+        $rules = [
             'type' => 'required|in:livraison_client,produit_livre',
             'titre' => 'required|string|max:255',
             'description' => 'required|string',
             'prix_propose' => 'required|numeric|min:0',
             'photo' => 'nullable|url',
             'entrepot_depart_id' => 'required|exists:entrepots,id',
-            'entrepot_arrivee_id' => 'required|exists:entrepots,id',
-        ]);
+        ];
+
+        // Si client → il faut entrepot_arrivee_id
+        if ($user->role === 'client') {
+            $rules['entrepot_arrivee_id'] = 'required|exists:entrepots,id';
+        }
+
+        $validated = $request->validate($rules);
 
         $annonce = new Annonce($validated);
 
@@ -75,6 +82,7 @@ class AnnonceController extends Controller
             $annonce->id_client = $user->id;
         } elseif ($user->role === 'commercant') {
             $annonce->id_commercant = $user->id;
+            $annonce->entrepot_arrivee_id = null; // ne doit pas être défini au départ
         }
 
         $annonce->save();
@@ -85,12 +93,20 @@ class AnnonceController extends Controller
         ], 201);
     }
 
+
     public function update(Request $request, $id)
     {
         $annonce = Annonce::find($id);
 
         if (! $annonce) {
             return response()->json(['message' => 'Annonce introuvable.'], 404);
+        }
+
+        if (
+            $annonce->type === 'produit_livre' &&
+            $annonce->id_client !== null
+        ) {
+            return response()->json(['message' => 'Cette annonce a déjà été réservée et ne peut plus être modifiée.'], 403);
         }
 
         $validated = $request->validate([
@@ -123,6 +139,13 @@ class AnnonceController extends Controller
 
         if (! $estAuteur && $user->role !== 'admin') {
             return response()->json(['message' => 'Action non autorisée.'], 403);
+        }
+
+        if (
+            $annonce->type === 'produit_livre' &&
+            $annonce->id_client !== null
+        ) {
+            return response()->json(['message' => 'Cette annonce a déjà été réservée et ne peut plus être modifiée.'], 403);
         }
 
         $annonce->delete();
@@ -178,6 +201,17 @@ class AnnonceController extends Controller
         $disponibles = [];
 
         foreach ($annonces as $annonce) {
+            // ❗ Spécifique aux annonces produit_livre : ignorer si pas encore réservée
+            if (
+                $annonce->type === 'produit_livre' &&
+                (
+                    ! $annonce->id_client ||
+                    ! $annonce->entrepotArrivee
+                )
+            ) {
+                continue;
+            }
+
             $etapes = $annonce->etapesLivraison;
 
             // ⚠️ S'il y a déjà des étapes, il ne faut AUCUNE étape livreur en cours
@@ -211,6 +245,7 @@ class AnnonceController extends Controller
     }
 
 
+
     public function accepterAnnonce(Request $request, $id)
     {
         $user = Auth::user();
@@ -237,11 +272,17 @@ class AnnonceController extends Controller
 
         // Déterminer le point de départ
         $depart_actuel = $annonce->entrepotDepart?->ville ?? '';
+
+        // On récupère la dernière étape terminée **selon le type d’annonce**
         $lastStep = $annonce->etapesLivraison()
             ->where('statut', 'terminee')
-            ->where('est_client', false)
+            ->when(
+                $annonce->type === 'produit_livre',
+                fn($q) => $q->where('est_commercant', false)
+            )
             ->orderByDesc('created_at')
             ->first();
+
         if ($lastStep) {
             $depart_actuel = $lastStep->lieu_arrivee;
         }
@@ -267,32 +308,61 @@ class AnnonceController extends Controller
 
         $etapesCreees = [];
 
-        // 📦 Étape pour le client (départ de l’annonce)
         if ($depart_actuel === $annonce->entrepotDepart->ville) {
-            $etapeClient = EtapeLivraison::create([
-                'annonce_id' => $annonce->id,
-                'livreur_id' => $user->id,
-                'lieu_depart' => $depart_actuel,
-                'lieu_arrivee' => $depart_actuel,
-                'statut' => 'en_cours',
-                'est_client' => true,
-            ]);
+            if ($annonce->type === 'produit_livre') {
+                // Étape dépôt du commerçant
+                $etapeCommercant = EtapeLivraison::create([
+                    'annonce_id' => $annonce->id,
+                    'livreur_id' => $user->id,
+                    'lieu_depart' => $depart_actuel,
+                    'lieu_arrivee' => $depart_actuel,
+                    'statut' => 'en_cours',
+                    'est_client' => false,
+                    'est_commercant' => true,
+                ]);
 
-            $entrepot = Entrepot::where('ville', $depart_actuel)->first();
-            $box = $entrepot?->boxes()->where('est_occupe', false)->first();
-            if (!$box) return response()->json(['message' => 'Aucune box disponible pour le client.'], 400);
+                $entrepot = Entrepot::where('ville', $depart_actuel)->first();
+                $box = $entrepot?->boxes()->where('est_occupe', false)->first();
+                if (!$box) return response()->json(['message' => 'Aucune box disponible pour le commerçant.'], 400);
 
-            CodeBox::create([
-                'box_id' => $box->id,
-                'etape_livraison_id' => $etapeClient->id,
-                'type' => 'depot',
-                'code_temporaire' => Str::upper(Str::random(6)),
-            ]);
+                CodeBox::create([
+                    'box_id' => $box->id,
+                    'etape_livraison_id' => $etapeCommercant->id,
+                    'type' => 'depot',
+                    'code_temporaire' => Str::upper(Str::random(6)),
+                ]);
 
-            $box->est_occupe = true;
-            $box->save();
+                $box->est_occupe = true;
+                $box->save();
 
-            $etapesCreees[] = $etapeClient;
+                $etapesCreees[] = $etapeCommercant;
+            } else {
+                // Étape dépôt du client
+                $etapeClient = EtapeLivraison::create([
+                    'annonce_id' => $annonce->id,
+                    'livreur_id' => $user->id,
+                    'lieu_depart' => $depart_actuel,
+                    'lieu_arrivee' => $depart_actuel,
+                    'statut' => 'en_cours',
+                    'est_client' => true,
+                ]);
+
+                $entrepot = Entrepot::where('ville', $depart_actuel)->first();
+                $box = $entrepot?->boxes()->where('est_occupe', false)->first();
+                if (!$box) return response()->json(['message' => 'Aucune box disponible pour le client.'], 400);
+
+                CodeBox::create([
+                    'box_id' => $box->id,
+                    'etape_livraison_id' => $etapeClient->id,
+                    'type' => 'depot',
+                    'code_temporaire' => Str::upper(Str::random(6)),
+                ]);
+
+                $box->est_occupe = true;
+                $box->save();
+
+                $etapesCreees[] = $etapeClient;
+            }
         }
 
         // 🚚 Étape pour le livreur (retrait + dépôt OU retrait seul si destination finale)
@@ -334,6 +404,35 @@ class AnnonceController extends Controller
             'message' => 'Annonce acceptée, étapes créées.',
             'etapes' => $etapesCreees,
         ]);
+    }
+
+    public function reserverAnnonce(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        if ($user->role !== 'client') {
+            return response()->json(['message' => 'Seuls les clients peuvent réserver.'], 403);
+        }
+
+        $request->validate([
+            'entrepot_arrivee_id' => 'required|exists:entrepots,id',
+        ]);
+
+        $annonce = Annonce::findOrFail($id);
+
+        if ($annonce->type !== 'produit_livre') {
+            return response()->json(['message' => 'Cette annonce ne peut pas être réservée.'], 400);
+        }
+
+        if ($annonce->id_client !== null || $annonce->entrepot_arrivee_id !== null) {
+            return response()->json(['message' => 'Annonce déjà réservée.'], 400);
+        }
+
+        $annonce->id_client = $user->id;
+        $annonce->entrepot_arrivee_id = $request->entrepot_arrivee_id;
+        $annonce->save();
+
+        return response()->json(['message' => 'Annonce réservée avec succès.']);
     }
 
 }

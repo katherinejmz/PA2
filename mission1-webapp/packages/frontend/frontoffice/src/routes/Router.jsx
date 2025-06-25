@@ -14,8 +14,6 @@ import MainLayout from "../layouts/MainLayout";
 import PrivateRoute from "./PrivateRoute";
 import Annonces from "../pages/Annonces";
 import CreerAnnonce from "../pages/CreerAnnonce";
-import AnnonceDetail from "../pages/AnnonceDetail";
-import AdresseLivraison from "../pages/AdresseLivraison";
 import Paiement from "../pages/Paiement";
 import DetailsService from "../pages/DetailsService";
 import MesAnnonces from "../pages/MesAnnonces";
@@ -32,6 +30,7 @@ import MesTrajets from "../pages/MesTrajets";
 import MesEtapes from "../pages/MesEtapes";
 import ValidationCodeBox from "../pages/ValidationCodeBox";
 import SuiviAnnonce from "../pages/SuiviAnnonce";
+import ReserverAnnonce from "../pages/ReserverAnnonce"
 
 export default function AppRouter() {
   return (
@@ -54,14 +53,7 @@ export default function AppRouter() {
               </PrivateRoute>
             }
           />
-          <Route
-            path="/annonces/:id"
-            element={
-              <PrivateRoute>
-                <AnnonceDetail />
-              </PrivateRoute>
-            }
-          />
+
           <Route
             path="/annonces/creer"
             element={
@@ -82,7 +74,7 @@ export default function AppRouter() {
               </PrivateRoute>
             }
           />
-          <Route path="/adresse-livraison/:commandeId" element={<AdresseLivraison />} />
+
           <Route
             path="/paiement/:commandeId"
             element={
@@ -265,6 +257,15 @@ export default function AppRouter() {
             element={
               <PrivateRoute>
                 <SuiviAnnonce />
+              </PrivateRoute>
+            } 
+          />
+
+          <Route 
+            path="/annonces/:annonceId/reserver"
+            element={
+              <PrivateRoute>
+                <ReserverAnnonce />
               </PrivateRoute>
             } 
           />

@@ -40,19 +40,21 @@ export default function ValidationCodeBox() {
       } else {
         // Étape livreur
         if (retrait && !retrait.utilise) {
-          // Le client a-t-il bien déposé ?
-          const clientEtape = await api.get(`/annonces/${e.annonce.id}`, {
+          // Le client ou commerçant a-t-il bien déposé ?
+          const annonceEtapes = await api.get(`/annonces/${e.annonce.id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          const clientDepot = clientEtape.data.etapes_livraison?.find(
-            (et) => et.est_client && et.codes?.some((c) => c.type === "depot" && c.utilise === true)
+          const depotEffectue = annonceEtapes.data.etapes_livraison?.some(
+            (et) =>
+              (et.est_client || et.est_commercant) &&
+              et.codes?.some((c) => c.type === "depot" && c.utilise === true)
           );
 
-          if (clientDepot) {
+          if (depotEffectue) {
             setStep("retrait");
           } else {
-            setStep(null); // bloqué tant que le client n’a pas déposé
+            setStep(null); // bloqué tant que rien n’a été déposé
           }
         } else if (depot && !depot.utilise) {
           setStep("depot");

@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function SuiviAnnonce() {
   const { annonceId } = useParams();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [annonce, setAnnonce] = useState(null);
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
@@ -17,10 +17,6 @@ export default function SuiviAnnonce() {
       const res = await api.get(`/annonces/${annonceId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log("📦 Annonce reçue :", res.data);
-      console.log("📌 Étapes livraison :", res.data.etapes_livraison);
-
       setAnnonce(res.data);
     } catch (err) {
       console.error("Erreur chargement annonce:", err);
@@ -28,26 +24,33 @@ export default function SuiviAnnonce() {
   };
 
   useEffect(() => {
-    fetchAnnonce();
-  }, [annonceId]);
+    if (token) {
+      fetchAnnonce();
+    }
+  }, [token, annonceId]);
 
-  if (!annonce) return <p className="text-center mt-10">Chargement...</p>;
+  if (!annonce || !user) return <p className="text-center mt-10">Chargement...</p>;
 
-  // Étape où le client doit déposer
+  const isCommercant = user.role === "commercant";
+
+  const etapeDepotCommercant = annonce.etapes_livraison?.find(
+    (etape) =>
+      etape.est_commercant === true &&
+      etape.codes?.some((c) => c.type === "depot" && !c.utilise)
+  );
+
   const etapeDepotClient = annonce.etapes_livraison?.find(
     (etape) =>
       etape.est_client === true &&
-      etape.codes?.some((c) => c.type === "depot" && c.utilise === false)
+      etape.codes?.some((c) => c.type === "depot" && !c.utilise)
   );
 
-  // Étape où le client doit retirer (ancienne logique)
   const etapeRetraitClient = annonce.etapes_livraison?.find(
     (etape) =>
       etape.est_client === true &&
-      etape.codes?.some((c) => c.type === "retrait" && c.utilise === false)
+      etape.codes?.some((c) => c.type === "retrait" && !c.utilise)
   );
 
-  // Étape finale où le client retire dans l'entrepôt d’arrivée (nouvelle logique)
   const etapeFinalePourClient = annonce.etapes_livraison?.find(
     (etape) =>
       etape.est_client === false &&
@@ -89,108 +92,101 @@ export default function SuiviAnnonce() {
       <p className="mb-2">Description : {annonce.description}</p>
       <p className="mb-4">Statut : {annonce.statut}</p>
 
-      {/* Dépôt initial */}
-      {etapeDepotClient && (
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-2">🚚 Dépôt initial</h3>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              validerCode("depot", etapeDepotClient.id);
-            }}
-            className="space-y-4"
-          >
-            <label className="block font-medium">Code de dépôt</label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="p-2 border rounded w-full"
-              required
-            />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              disabled={loading}
-            >
-              {loading ? "Vérification..." : "Valider le dépôt"}
-            </button>
-            {etatCode === "success" && <p className="text-green-600">{message}</p>}
-            {etatCode === "error" && <p className="text-red-600">{message}</p>}
-          </form>
-        </div>
+      {!isCommercant && etapeDepotClient && (
+        <EtapeForm
+          titre="🚚 Dépôt initial"
+          code={code}
+          setCode={setCode}
+          loading={loading}
+          valider={() => validerCode("depot", etapeDepotClient.id)}
+          message={message}
+          etatCode={etatCode}
+        />
       )}
 
-      {/* Retrait intermédiaire si jamais une étape est_client = true existe */}
-      {etapeRetraitClient && (
-        <div className="mt-10">
-          <h3 className="text-lg font-semibold mb-2">📦 Retrait (étape client)</h3>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              validerCode("retrait", etapeRetraitClient.id);
-            }}
-            className="space-y-4"
-          >
-            <label className="block font-medium">Code de retrait</label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="p-2 border rounded w-full"
-              required
-            />
-            <button
-              type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-              disabled={loading}
-            >
-              {loading ? "Vérification..." : "Retirer le colis"}
-            </button>
-            {etatCode === "success" && <p className="text-green-600">{message}</p>}
-            {etatCode === "error" && <p className="text-red-600">{message}</p>}
-          </form>
-        </div>
+      {isCommercant && etapeDepotCommercant && (
+        <EtapeForm
+          titre="🏪 Dépôt du commerçant"
+          code={code}
+          setCode={setCode}
+          loading={loading}
+          valider={() => validerCode("depot", etapeDepotCommercant.id)}
+          message={message}
+          etatCode={etatCode}
+        />
       )}
 
-      {/* Retrait final dans l’entrepôt de destination */}
-      {etapeFinalePourClient && (
+      {!isCommercant && etapeRetraitClient && (
+        <EtapeForm
+          titre="📦 Retrait (étape client)"
+          code={code}
+          setCode={setCode}
+          loading={loading}
+          valider={() => validerCode("retrait", etapeRetraitClient.id)}
+          message={message}
+          etatCode={etatCode}
+          isRetrait
+        />
+      )}
+
+      {!isCommercant && etapeFinalePourClient && (
         <div className="mt-10">
           <h3 className="text-lg font-semibold mb-2">📦 Retrait du colis final</h3>
-
           {codeRetraitClientFinal?.utilise ? (
             <p className="text-green-600 font-semibold">
               ✅ Colis déjà retiré par le client.
             </p>
           ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                validerCode("retrait", etapeFinalePourClient.id);
-              }}
-              className="space-y-4"
-            >
-              <label className="block font-medium">Code de retrait</label>
-              <input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="p-2 border rounded w-full"
-                required
-              />
-              <button
-                type="submit"
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                disabled={loading}
-              >
-                {loading ? "Vérification..." : "Retirer le colis"}
-              </button>
-              {etatCode === "success" && <p className="text-green-600">{message}</p>}
-              {etatCode === "error" && <p className="text-red-600">{message}</p>}
-            </form>
+            <EtapeForm
+              titre=""
+              code={code}
+              setCode={setCode}
+              loading={loading}
+              valider={() => validerCode("retrait", etapeFinalePourClient.id)}
+              message={message}
+              etatCode={etatCode}
+              isRetrait
+            />
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function EtapeForm({ titre, code, setCode, loading, valider, message, etatCode, isRetrait }) {
+  return (
+    <div className="mt-10">
+      {titre && <h3 className="text-lg font-semibold mb-2">{titre}</h3>}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          valider();
+        }}
+        className="space-y-4"
+      >
+        <label className="block font-medium">Code {isRetrait ? "de retrait" : "de dépôt"}</label>
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          className="p-2 border rounded w-full"
+          required
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          disabled={loading}
+        >
+          {loading
+            ? "Vérification..."
+            : isRetrait
+            ? "Retirer le colis"
+            : "Valider le dépôt"}
+        </button>
+        {etatCode === "success" && <p className="text-green-600">{message}</p>}
+        {etatCode === "error" && <p className="text-red-600">{message}</p>}
+      </form>
     </div>
   );
 }

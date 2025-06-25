@@ -15,7 +15,7 @@ export default function MesEtapes() {
       });
 
       const toutes = res.data;
-      const livreurEtapes = toutes.filter((e) => e.est_client === false);
+      const livreurEtapes = toutes.filter((e) => !e.est_client && !e.est_commercant);
 
       setToutesEtapes(toutes);
       setEtapes(livreurEtapes);
@@ -43,14 +43,14 @@ export default function MesEtapes() {
             let infoMessage = "";
             let boutonAction = null;
 
-            // ✅ Vérifie si le client a déjà déposé
-            const clientHasDeposited = toutesEtapes.some(
+            // ✅ Vérifie si un dépôt a été effectué par le client ou le commerçant
+            const colisEstDisponible = toutesEtapes.some(
               (et) =>
-                et.est_client === true &&
+                (et.est_client === true || et.est_commercant === true) &&
                 et.codes?.some((c) => c.type === "depot" && c.utilise)
             );
 
-            if (!codeRetrait?.utilise && clientHasDeposited) {
+            if (!codeRetrait?.utilise && colisEstDisponible) {
               infoMessage = "🔓 Prêt pour retrait du colis";
               boutonAction = (
                 <Link
@@ -60,8 +60,8 @@ export default function MesEtapes() {
                   Saisir le code pour retirer
                 </Link>
               );
-            } else if (!codeRetrait?.utilise && !clientHasDeposited) {
-              infoMessage = "⏳ En attente de dépôt du client";
+            } else if (!codeRetrait?.utilise && !colisEstDisponible) {
+              infoMessage = "⏳ En attente de dépôt du commerçant ou client";
             } else if (!codeDepot?.utilise && codeDepot) {
               infoMessage = "📦 Prêt pour dépôt à l'arrivée";
               boutonAction = (

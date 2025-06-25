@@ -15,9 +15,18 @@ class EtapeLivraisonController extends Controller
 {
     public function show($id)
     {
+        $user = Auth::user();
+
         $etape = EtapeLivraison::with(['annonce', 'codes'])->findOrFail($id);
+        $annonce = $etape->annonce;
+
+        if ($user->role === 'commercant' && $annonce->id_commercant !== $user->id) {
+            return response()->json(['message' => 'Accès non autorisé.'], 403);
+        }
+
         return response()->json($etape);
     }
+
 
     // Liste des étapes pour un livreur
     public function mesEtapes()
@@ -29,10 +38,8 @@ class EtapeLivraisonController extends Controller
         }
 
         // On renvoie toutes les étapes liées à l’annonce du livreur
-        $annonceIds = EtapeLivraison::where('livreur_id', $user->id)->pluck('annonce_id');
-
         $etapes = EtapeLivraison::with('annonce', 'codes')
-            ->whereIn('annonce_id', $annonceIds)
+            ->where('livreur_id', $user->id)
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -71,66 +78,39 @@ class EtapeLivraisonController extends Controller
         $user = Auth::user();
         $etape = EtapeLivraison::with('annonce', 'codes')->findOrFail($id);
 
+        // Sécurité : seule le livreur associé peut clôturer l'étape
         if ($etape->livreur_id !== $user->id) {
             return response()->json(['message' => 'Non autorisé.'], 403);
         }
 
-        // Vérifie si le code de dépôt est bien utilisé
-        $codeDepot = $etape->codes->first(fn($c) => $c->type === 'depot');
-
-        if (! $codeDepot || ! $codeDepot->utilise) {
-            return response()->json(['message' => 'Le dépôt n’a pas encore été validé.'], 400);
-        }
-
-        // Ne pas re-clôturer une étape déjà terminée
+        // Vérifie si l'étape est déjà terminée
         if ($etape->statut === 'terminee') {
             return response()->json(['message' => 'Étape déjà terminée.'], 200);
         }
 
-        // Clôture de l’étape
+        // Vérifie que le code de dépôt a été utilisé
+        $codeDepot = $etape->codes->first(fn($c) => $c->type === 'depot' && $c->utilise);
+
+        if (! $codeDepot) {
+            return response()->json(['message' => 'Le dépôt n’a pas encore été validé.'], 400);
+        }
+
+        // Clôture
         $etape->statut = 'terminee';
         $etape->save();
 
         $annonce = $etape->annonce;
 
-        // 🎯 Livraison finale : générer un code retrait client si on arrive à la fin
+        // 🎯 Si c’est la dernière étape vers l'entrepôt final, créer étape client finale
         if (
-            strcasecmp($etape->lieu_arrivee, $annonce->entrepotArrivee?->ville) === 0
-            && ! $etape->est_client
+            $etape->est_client === false &&
+            $etape->lieu_arrivee === $annonce->entrepotArrivee?->ville
         ) {
-            // Vérifie si un code de retrait pour le client a déjà été créé
-            $dejaCree = CodeBox::where('etape_livraison_id', $etape->id)
-                ->where('type', 'retrait')
-                ->exists();
-
-            if (! $dejaCree) {
-                $code = Str::upper(Str::random(6));
-
-                $entrepot = Entrepot::where('ville', $etape->lieu_arrivee)->first();
-                $box = $entrepot?->boxes()->where('est_occupe', false)->first();
-
-                if (! $box) {
-                    return response()->json(['message' => 'Aucune box dispo pour le client final.'], 400);
-                }
-
-                CodeBox::create([
-                    'box_id' => $box->id,
-                    'etape_livraison_id' => $etape->id,
-                    'type' => 'retrait',
-                    'code_temporaire' => $code,
-                ]);
-
-                $box->est_occupe = true;
-                $box->save();
-            }
-
-            return response()->json(['message' => 'Étape terminée. Code client généré.']);
+            $annonce->genererEtapeRetraitClientFinaleSiBesoin();
         }
 
-        return response()->json(['message' => 'Étape clôturée avec succès.']);
+        return response()->json(['message' => '✅ Étape clôturée avec succès.']);
     }
-
-
 
     public function validerCode(Request $request)
     {
@@ -140,7 +120,12 @@ class EtapeLivraisonController extends Controller
             'etape_id' => 'required|exists:etapes_livraison,id',
         ]);
 
+        $user = Auth::user();
         $etape = EtapeLivraison::with('annonce')->findOrFail($request->etape_id);
+
+        if ($user->role === 'commercant' && $etape->annonce->id_commercant !== $user->id) {
+            return response()->json(['message' => 'Non autorisé.'], 403);
+        }
 
         $codeBox = CodeBox::where('etape_livraison_id', $etape->id)
             ->where('type', $request->type)
@@ -204,7 +189,13 @@ class EtapeLivraisonController extends Controller
 
     public function codes($id)
     {
-        $etape = EtapeLivraison::with('codes')->findOrFail($id);
+        $user = Auth::user();
+        $etape = EtapeLivraison::with(['codes', 'annonce'])->findOrFail($id);
+
+        if ($user->role === 'commercant' && $etape->annonce->id_commercant !== $user->id) {
+            return response()->json(['message' => 'Non autorisé.'], 403);
+        }
+
         return response()->json($etape->codes);
     }
 
@@ -225,8 +216,5 @@ class EtapeLivraisonController extends Controller
 
         return response()->json($suivante);
     }
-
-
-
 
 }
