@@ -1,2 +1,0 @@
-futur fichier de db ici
-(txt à supp après init de la db)
